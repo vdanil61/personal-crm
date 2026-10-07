@@ -1,0 +1,33 @@
+// Builds the Postgres connection string from environment variables.
+// DATABASE_URL wins if set; otherwise it is assembled from the same
+// POSTGRES_* variables that compose.yaml uses to start the database.
+export function getDatabaseUrl(): string {
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL;
+  }
+
+  const { POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB } = process.env;
+  if (!POSTGRES_USER || !POSTGRES_PASSWORD || !POSTGRES_DB) {
+    throw new Error(
+      "Database settings are missing: set DATABASE_URL or POSTGRES_USER, POSTGRES_PASSWORD and POSTGRES_DB in .env",
+    );
+  }
+
+  // Empty values (as copied from .env.example) fall back to defaults too
+  const host = process.env.POSTGRES_HOST || "127.0.0.1";
+  const port = process.env.POSTGRES_PORT || "5432";
+  const user = encodeURIComponent(POSTGRES_USER);
+  const password = encodeURIComponent(POSTGRES_PASSWORD);
+  const database = encodeURIComponent(POSTGRES_DB);
+
+  return `postgres://${user}:${password}@${host}:${port}/${database}`;
+}
+
+// Next.js loads .env by itself; standalone scripts (drizzle-kit, seed) call this.
+export function loadEnvFile() {
+  try {
+    process.loadEnvFile(".env");
+  } catch {
+    // No .env file: rely on variables already present in the environment
+  }
+}
