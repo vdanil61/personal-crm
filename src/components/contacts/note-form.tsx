@@ -24,7 +24,15 @@ export function NoteForm({ contactId }: { contactId: string }) {
   }, [state]);
 
   return (
-    <form ref={formRef} action={formAction} className="space-y-2">
+    <form
+      ref={formRef}
+      action={formAction}
+      onSubmit={(event) => {
+        // A second Ctrl+Enter while saving would queue the same note again
+        if (pending) event.preventDefault();
+      }}
+      className="space-y-2"
+    >
       <Textarea
         name="body"
         // After a failed submit React resets the form, so refill it with what was typed

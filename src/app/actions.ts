@@ -16,6 +16,18 @@ import {
 
 const SAVE_FAILED = "Не удалось сохранить. Проверьте, что база данных запущена, и попробуйте ещё раз.";
 
+// Database errors carry the failed query with its values (names, phones, note text),
+// and the log is less protected than the database. So only the class and code of each
+// error in the cause chain are logged, e.g. "DrizzleQueryError > DatabaseError 42P01".
+function describeError(err: unknown): string {
+  const parts: string[] = [];
+  for (let current = err; current instanceof Error && parts.length < 5; current = current.cause) {
+    const code = "code" in current && typeof current.code === "string" ? ` ${current.code}` : "";
+    parts.push(`${current.constructor.name}${code}`);
+  }
+  return parts.join(" > ") || "unknown error";
+}
+
 function readContactForm(formData: FormData): ContactFormValues {
   const values = {} as ContactFormValues;
   for (const field of contactFields) {
@@ -53,7 +65,7 @@ export async function createContact(
     revalidatePath("/", "layout");
     return { status: "success", contactId: created.id, name: data.name, savedAt: Date.now() };
   } catch (err) {
-    console.error("Failed to create contact", err);
+    console.error(`Failed to create contact: ${describeError(err)}`);
     return { status: "error", attempt: Date.now(), values, fieldErrors: {}, message: SAVE_FAILED };
   }
 }
@@ -88,7 +100,7 @@ export async function updateContact(
     revalidatePath("/", "layout");
     return { status: "success", contactId, name: data.name, savedAt: Date.now() };
   } catch (err) {
-    console.error("Failed to update contact", err);
+    console.error(`Failed to update contact: ${describeError(err)}`);
     return { status: "error", attempt: Date.now(), values, fieldErrors: {}, message: SAVE_FAILED };
   }
 }
@@ -126,7 +138,7 @@ export async function addNote(
     revalidatePath("/", "layout");
     return { status: "success", savedAt: Date.now() };
   } catch (err) {
-    console.error("Failed to add note", err);
+    console.error(`Failed to add note: ${describeError(err)}`);
     return { status: "error", body, message: SAVE_FAILED };
   }
 }
