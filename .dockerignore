@@ -1,0 +1,19 @@
+# Secrets never go into the image
+.env
+.env.*
+
+# Installed and built inside the image
+node_modules
+.next
+dist
+*.tsbuildinfo
+next-env.d.ts
+
+# Not needed to build the app
+.git
+.github
+.claude
+deploy
+specs
+*.md
+.DS_Store

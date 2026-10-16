@@ -1,0 +1,38 @@
+name: Server SSH
+description: Sets up SSH so that later steps can run `ssh server ...` and `scp ... server:...` as the deploy user.
+
+inputs:
+  host:
+    description: Server address
+    required: true
+  known-hosts:
+    description: The server's line for ~/.ssh/known_hosts, so its identity is checked
+    required: true
+  private-key:
+    description: Private SSH key of the deploy user
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        HOST: ${{ inputs.host }}
+        KNOWN_HOSTS: ${{ inputs.known-hosts }}
+        PRIVATE_KEY: ${{ inputs.private-key }}
+      run: |
+        install -d -m 700 ~/.ssh
+        printf '%s\n' "$PRIVATE_KEY" > ~/.ssh/deploy_key
+        chmod 600 ~/.ssh/deploy_key
+        printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+        cat > ~/.ssh/config <<EOF
+        Host server
+          HostName $HOST
+          User deploy
+          IdentityFile ~/.ssh/deploy_key
+          IdentitiesOnly yes
+          BatchMode yes
+          StrictHostKeyChecking yes
+          ConnectTimeout 30
+          ServerAliveInterval 15
+        EOF

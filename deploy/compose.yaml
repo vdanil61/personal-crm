@@ -1,0 +1,67 @@
+# Production stack on the server, docker compose project "prod".
+# Lives in /home/deploy/personal-crm next to .env (database settings, chmod 600).
+# The app image comes from APP_IMAGE, which deploy.sh sets for every command.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-app: &app
+  image: ${APP_IMAGE:?run through deploy.sh, it sets APP_IMAGE}
+  environment:
+    POSTGRES_HOST: db
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+    POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+  depends_on:
+    db:
+      condition: service_healthy
+  logging: *logging
+
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    volumes:
+      # Postgres 18+ images keep data under /var/lib/postgresql/<major>/
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging: *logging
+
+  app:
+    <<: *app
+    restart: unless-stopped
+    ports:
+      # Only nginx on this server reaches the app; it is not exposed to the internet directly
+      - "127.0.0.1:3000:3000"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # One-off containers from the same image: docker compose run --rm migrate | seed
+  migrate:
+    <<: *app
+    command: ["node", "scripts/migrate.cjs"]
+    profiles: [tools]
+
+  seed:
+    <<: *app
+    command: ["node", "scripts/seed.cjs"]
+    profiles: [tools]
+
+volumes:
+  db-data:

@@ -2,7 +2,7 @@ import "server-only";
 
 import { desc, eq } from "drizzle-orm";
 
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { contacts, notes } from "@/db/schema";
 
 export type ContactListItem = {
@@ -16,7 +16,7 @@ export type ContactListItem = {
 const nameCollator = new Intl.Collator("ru", { sensitivity: "base" });
 
 export async function listContacts(): Promise<ContactListItem[]> {
-  const rows = await db
+  const rows = await getDb()
     .select({
       id: contacts.id,
       name: contacts.name,
@@ -31,12 +31,12 @@ export async function listContacts(): Promise<ContactListItem[]> {
 }
 
 export async function getContact(id: string) {
-  const [contact] = await db.select().from(contacts).where(eq(contacts.id, id)).limit(1);
+  const [contact] = await getDb().select().from(contacts).where(eq(contacts.id, id)).limit(1);
   return contact ?? null;
 }
 
 export async function listNotes(contactId: string) {
-  return db
+  return getDb()
     .select()
     .from(notes)
     .where(eq(notes.contactId, contactId))
