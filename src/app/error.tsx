@@ -10,8 +10,8 @@ export default function ErrorPage({ error, retry }: { error: Error & { digest?: 
   }, [error]);
 
   return (
-    <div className="flex flex-col items-center gap-3 rounded-xl border bg-background px-6 py-16 text-center">
-      <h1 className="text-xl font-semibold">Не получилось загрузить данные</h1>
+    <div className="flex flex-col items-center gap-3 bg-card px-6 py-16 text-center">
+      <h1 className="text-title">Не получилось загрузить данные</h1>
       <p className="max-w-sm text-sm text-muted-foreground">
         Скорее всего, не запущена база данных. Проверьте, что Docker Desktop работает, и попробуйте ещё раз.
       </p>

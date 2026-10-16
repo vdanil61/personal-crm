@@ -5,6 +5,7 @@ import { PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { createContact } from "@/app/actions";
+import { CornerMarks } from "@/components/corner-marks";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -34,9 +35,10 @@ export function AddContactDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={<Button size="lg" />}>
+      <DialogTrigger render={<Button size="lg" className="relative w-full sm:w-auto" />}>
         <PlusIcon data-icon="inline-start" />
         Добавить контакт
+        <CornerMarks />
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>

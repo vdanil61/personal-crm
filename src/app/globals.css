@@ -8,8 +8,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+  --color-primary-strong: var(--primary-strong);
+  --color-soft-foreground: var(--soft-foreground);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,31 +49,102 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* Text roles of the landing: size, line height, letter spacing, weight.
+   `name` is for phones, `name-lg` for wide screens */
+@theme {
+  --font-corner: sans-serif; /* "+" marks in the corners of the main button */
+
+  --shadow-card: 0 24px 60px rgba(40, 44, 110, 0.1);
+
+  /* page heading */
+  --text-page-title: 36px;
+  --text-page-title--line-height: 1.05;
+  --text-page-title--letter-spacing: -0.04em;
+  --text-page-title--font-weight: 500;
+  --text-page-title-lg: 48px;
+  --text-page-title-lg--line-height: 1;
+  --text-page-title-lg--letter-spacing: -0.045em;
+  --text-page-title-lg--font-weight: 500;
+
+  /* dialog and message titles */
+  --text-title: 20px;
+  --text-title--line-height: 1.2;
+  --text-title--letter-spacing: -0.02em;
+  --text-title--font-weight: 500;
+
+  /* contact card */
+  --text-card-name: 22px;
+  --text-card-name--line-height: 1.2;
+  --text-card-name--letter-spacing: -0.02em;
+  --text-card-name--font-weight: 500;
+  --text-card-name-lg: 26px;
+  --text-card-name-lg--line-height: 1.2;
+  --text-card-name-lg--letter-spacing: -0.02em;
+  --text-card-name-lg--font-weight: 500;
+  --text-card-meta: 15px;
+  --text-card-meta--line-height: 1.4;
+  --text-card-meta--font-weight: 300;
+
+  /* small uppercase labels: "Заметки", "Телефон", list letters */
+  --text-label: 12px;
+  --text-label--line-height: normal;
+  --text-label--letter-spacing: 0.06em;
+  --text-label--font-weight: 400;
+  --text-label-lg: 13px;
+  --text-label-lg--line-height: normal;
+  --text-label-lg--letter-spacing: 0.06em;
+  --text-label-lg--font-weight: 400;
+
+  /* notes */
+  --text-note-date: 13px;
+  --text-note-date--line-height: normal;
+  --text-note-date--font-weight: 300;
+  --text-note: 16px;
+  --text-note--line-height: 1.45;
+  --text-note--font-weight: 400;
+
+  /* logo */
+  --text-logo: 17px;
+  --text-logo--line-height: 1;
+  --text-logo--font-weight: 600;
+  --text-logo-lg: 20px;
+  --text-logo-lg--line-height: 1;
+  --text-logo-lg--font-weight: 600;
+
+  /* "+" marks of the main button */
+  --text-corner: 14px;
+  --text-corner--line-height: 1;
+  --text-corner--font-weight: 300;
+}
+
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  /* Palette of the landing (personal-crm-landing/src/styles/tokens.css) */
+  --background: #eceef5; /* page */
+  --foreground: #16182b; /* ink: main text */
+  --card: #fff;
+  --card-foreground: #16182b;
+  --popover: #fff;
+  --popover-foreground: #16182b;
+  --primary: #4b4fe0; /* accent: buttons, avatars, latest note */
+  --primary-strong: #3c3fc4; /* button hover; links, labels, icons */
+  --primary-foreground: #fff;
+  --secondary: #dfe1fb; /* accent-soft: icon tiles, highlighted row */
+  --secondary-foreground: #3c3fc4;
+  --muted: #eceef5; /* row hover, skeletons */
+  --muted-foreground: #5d6077; /* subtle: captions, dates */
+  --soft-foreground: #4a4d66; /* secondary text, older notes */
+  --accent: #dfe1fb;
+  --accent-foreground: #3c3fc4;
+  --destructive: #d12c4a;
+  --border: #e3e5ef; /* dividers inside white cards */
+  --input: #d4d6ef; /* field borders, older note line */
+  --ring: #4b4fe0;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --radius: 0px; /* the landing has square corners everywhere */
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -81,6 +153,18 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* Page background: the same soft vertical blend as on the landing.
+     Pinned to the window, so sticky bars with `bg-page` match it exactly */
+  --background-page: linear-gradient(
+    180deg,
+    #eceef5 0%,
+    #e4e6f7 18%,
+    #ebe4f5 36%,
+    #e1ebf4 56%,
+    #e8e6f8 76%,
+    #eceef5 100%
+  );
 }
 
 .dark {
@@ -117,17 +201,36 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@utility bg-page {
+  background: var(--background-page) fixed;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-page text-foreground;
+  }
+  h1,
+  h2 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
+  a:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* Thin icon lines, as on the landing */
+  .lucide {
+    stroke-width: 1.5;
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
   }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans;
   }
 }

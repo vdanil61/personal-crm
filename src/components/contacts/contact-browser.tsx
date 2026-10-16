@@ -97,11 +97,11 @@ export function ContactBrowser({ contacts }: { contacts: ContactListItem[] }) {
 
   return (
     <div>
-      <div className="sticky top-0 z-10 -mx-4 bg-neutral-50/95 px-4 pt-1 pb-3 backdrop-blur">
+      <div className="sticky top-0 z-10 -mx-5 bg-page px-5 pt-1 pb-3">
         <div className="relative">
           <SearchIcon
             aria-hidden
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-primary-strong"
           />
           <Input
             type="search"
@@ -112,7 +112,7 @@ export function ContactBrowser({ contacts }: { contacts: ContactListItem[] }) {
             }}
             placeholder="Найти по имени"
             aria-label="Найти контакт по имени"
-            className="h-10 bg-background pl-9 text-base md:text-base"
+            className="h-12 border-transparent pl-12 text-base md:text-base"
           />
         </div>
         <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
@@ -133,11 +133,11 @@ export function ContactBrowser({ contacts }: { contacts: ContactListItem[] }) {
           hint="Поиск идёт по имени. Проверьте написание или попробуйте часть имени."
         />
       ) : (
-        <div className="overflow-clip rounded-xl border bg-background">
+        <div className="overflow-clip bg-card">
           {groups ? (
             groups.map((group) => (
               <section key={group.letter} aria-label={`Буква ${group.letter}`}>
-                <h2 className="sticky top-[5.25rem] z-[1] border-y bg-muted px-4 py-1 text-xs font-semibold text-muted-foreground first:border-t-0">
+                <h2 className="sticky top-23 z-[1] border-y bg-card px-4 py-2 text-label text-primary-strong uppercase first:border-t-0 lg:px-5 lg:text-label-lg">
                   {group.letter}
                 </h2>
                 <ContactRows items={group.items} highlightedId={highlightedId} />
@@ -165,14 +165,14 @@ function ContactRows({ items, highlightedId }: { items: ContactListItem[]; highl
                 if (!event.metaKey && !event.ctrlKey && !event.shiftKey) markOpenedFromList();
               }}
               className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors duration-700 outline-none hover:bg-muted/60 focus-visible:bg-muted",
-                contact.id === highlightedId && "bg-amber-100 hover:bg-amber-100",
+                "flex items-center gap-3 px-4 py-3 transition-colors duration-700 outline-none hover:bg-muted/60 focus-visible:bg-muted lg:gap-4 lg:px-5",
+                contact.id === highlightedId && "bg-secondary hover:bg-secondary",
               )}
             >
-              <ContactAvatar id={contact.id} name={contact.name} />
+              <ContactAvatar name={contact.name} />
               <div className="min-w-0 flex-1">
                 <div className="truncate font-medium">{contact.name}</div>
-                {details && <div className="truncate text-sm text-muted-foreground">{details}</div>}
+                {details && <div className="truncate text-sm font-light text-muted-foreground">{details}</div>}
               </div>
               {contact.phone && (
                 <div className="hidden shrink-0 text-sm text-muted-foreground tabular-nums sm:block">
@@ -189,9 +189,11 @@ function ContactRows({ items, highlightedId }: { items: ContactListItem[]; highl
 
 function EmptyState({ title, hint }: { title: string; hint: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed bg-background px-6 py-12 text-center">
-      <UsersIcon aria-hidden className="size-8 text-muted-foreground" />
-      <p className="font-medium">{title}</p>
+    <div className="flex flex-col items-center gap-2 bg-card px-6 py-12 text-center">
+      <div className="mb-2 grid size-12 place-items-center bg-secondary text-primary-strong">
+        <UsersIcon aria-hidden className="size-6" />
+      </div>
+      <p className="text-title">{title}</p>
       <p className="max-w-sm text-sm text-muted-foreground">{hint}</p>
     </div>
   );

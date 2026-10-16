@@ -9,8 +9,8 @@ import { listContacts } from "@/lib/contacts";
 export default function HomePage() {
   return (
     <>
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-semibold tracking-tight">Контакты</h1>
+      <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 lg:mb-8">
+        <h1 className="text-page-title lg:text-page-title-lg">Контакты</h1>
         <AddContactDialog />
       </div>
       <Suspense fallback={<ContactListSkeleton />}>
@@ -31,13 +31,13 @@ function ContactListSkeleton() {
   return (
     <div aria-busy aria-label="Загружаю контакты">
       <div className="pt-1 pb-3">
-        <Skeleton className="h-10 w-full rounded-lg" />
+        <Skeleton className="h-12 w-full bg-card" />
         <Skeleton className="mt-2 h-5 w-32" />
       </div>
-      <div className="divide-y rounded-xl border bg-background">
+      <div className="divide-y bg-card">
         {Array.from({ length: 8 }, (_, index) => (
-          <div key={index} className="flex items-center gap-3 px-4 py-3">
-            <Skeleton className="size-9 rounded-full" />
+          <div key={index} className="flex items-center gap-3 px-4 py-3 lg:gap-4 lg:px-5">
+            <Skeleton className="size-10" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-48" />
               <Skeleton className="h-3 w-72 max-w-full" />
