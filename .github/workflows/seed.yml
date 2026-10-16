@@ -1,0 +1,37 @@
+name: Seed test data
+
+# Started by hand (Actions → Seed test data → Run workflow).
+# Fills an EMPTY production database with test contacts; a database with contacts is left untouched.
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: How many test contacts to create
+        type: number
+        default: 1000
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    name: Seed production database
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/server-ssh
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          known-hosts: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Seed
+        env:
+          COUNT: ${{ inputs.count }}
+        run: |
+          [[ "$COUNT" =~ ^[1-9][0-9]*$ ]] || { echo "count must be a positive integer"; exit 1; }
+          ssh server "personal-crm/seed.sh $COUNT"

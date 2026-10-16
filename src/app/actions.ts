@@ -3,7 +3,7 @@
 import { eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-import { db } from "@/db";
+import { getDb } from "@/db";
 import { contacts, notes } from "@/db/schema";
 import type { ContactFormState, ContactFormValues, NoteFormState } from "@/lib/form-state";
 import {
@@ -61,7 +61,7 @@ export async function createContact(
   if (error) return error;
 
   try {
-    const [created] = await db.insert(contacts).values(data).returning({ id: contacts.id });
+    const [created] = await getDb().insert(contacts).values(data).returning({ id: contacts.id });
     revalidatePath("/", "layout");
     return { status: "success", contactId: created.id, name: data.name, savedAt: Date.now() };
   } catch (err) {
@@ -83,7 +83,7 @@ export async function updateContact(
   if (error) return error;
 
   try {
-    const updated = await db
+    const updated = await getDb()
       .update(contacts)
       .set({ ...data, updatedAt: sql`now()` })
       .where(eq(contacts.id, contactId))
@@ -122,7 +122,7 @@ export async function addNote(
   }
 
   try {
-    const saved = await db.transaction(async (tx) => {
+    const saved = await getDb().transaction(async (tx) => {
       const touched = await tx
         .update(contacts)
         .set({ updatedAt: sql`now()` })

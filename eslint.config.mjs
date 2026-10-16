@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Bundled scripts for the Docker image (pnpm build:scripts)
+    "dist/**",
   ]),
 ]);
 
