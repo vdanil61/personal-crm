@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PlusIcon } from "lucide-react";
 import { toast } from "sonner";
 
@@ -16,22 +17,23 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import type { ContactFormState } from "@/lib/form-state";
+import { contactListHref, currentPageSize } from "@/lib/search";
 
 import { ContactForm } from "./contact-form";
-import { ADDED_PARAM } from "./search";
 
 export function AddContactDialog() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const handleSuccess = useCallback((result: Extract<ContactFormState, { status: "success" }>) => {
-    setOpen(false);
-    toast.success(`Контакт «${result.name}» добавлен`);
-    // The contact list picks this up, scrolls to the new contact and highlights it
-    const url = new URL(window.location.href);
-    url.searchParams.delete("q");
-    url.searchParams.set(ADDED_PARAM, result.contactId);
-    window.history.replaceState(null, "", url);
-  }, []);
+  const handleSuccess = useCallback(
+    (result: Extract<ContactFormState, { status: "success" }>) => {
+      setOpen(false);
+      toast.success(`Контакт «${result.name}» добавлен`);
+      // The full list opens on the page with the new contact, scrolls to it and highlights it
+      router.replace(contactListHref({ added: result.contactId, size: currentPageSize() }), { scroll: false });
+    },
+    [router],
+  );
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
