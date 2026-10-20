@@ -1,22 +1,17 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { SearchIcon, UsersIcon } from "lucide-react";
+import { UsersIcon } from "lucide-react";
 
-import { Input } from "@/components/ui/input";
 import type { ContactListItem } from "@/lib/contacts";
-import { pluralize } from "@/lib/format";
 import { markOpenedFromList } from "@/lib/return-to-list";
+import { ADDED_PARAM, type PageSize, contactListHref } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
 import { ContactAvatar } from "./avatar";
-import { ADDED_PARAM, QUERY_PARAM, matchesQuery, normalizeForSearch, toQueryWords } from "./search";
-
-const CONTACT_WORDS: [string, string, string] = ["контакт", "контакта", "контактов"];
-// After "из": "1 из 21 контакта", "1 из 1 000 контактов"
-const OUT_OF_CONTACT_WORDS: [string, string, string] = ["контакта", "контактов", "контактов"];
+import { ContactPagination } from "./contact-pagination";
 
 type Group = { letter: string; items: ContactListItem[] };
 
@@ -40,25 +35,32 @@ function groupByLetter(items: ContactListItem[]): Group[] {
   return groups;
 }
 
-function replaceUrlParams(update: (params: URLSearchParams) => void) {
-  const url = new URL(window.location.href);
-  update(url.searchParams);
-  window.history.replaceState(null, "", url);
-}
-
-export function ContactBrowser({ contacts }: { contacts: ContactListItem[] }) {
+// One page of the list; the server has already searched, sorted and cut it
+export function ContactBrowser({
+  contacts,
+  total,
+  query,
+  page,
+  pageCount,
+  pageSize,
+}: {
+  contacts: ContactListItem[];
+  total: number;
+  query: string;
+  page: number;
+  pageCount: number;
+  pageSize: PageSize;
+}) {
   const searchParams = useSearchParams();
-  const [query, setQuery] = useState(() => searchParams.get(QUERY_PARAM) ?? "");
-  const deferredQuery = useDeferredValue(query);
+  const isSearching = query.trim() !== "";
 
-  // A contact was just added: clear the search and point at it in the list
+  // A contact was just added: the server opened the page with it, point at it in the list
   const addedId = searchParams.get(ADDED_PARAM);
   const [handledAddedId, setHandledAddedId] = useState<string | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   if (addedId && addedId !== handledAddedId && contacts.some((c) => c.id === addedId)) {
     setHandledAddedId(addedId);
     setHighlightedId(addedId);
-    setQuery("");
   }
 
   useEffect(() => {
@@ -66,88 +68,49 @@ export function ContactBrowser({ contacts }: { contacts: ContactListItem[] }) {
     document
       .getElementById(`contact-${highlightedId}`)
       ?.scrollIntoView({ block: "center", behavior: "smooth" });
-    replaceUrlParams((params) => params.delete(ADDED_PARAM));
+    // Keep the page in the address instead of the added contact: reload and "back" return here
+    window.history.replaceState(null, "", contactListHref({ page, size: pageSize }));
     const timer = setTimeout(() => setHighlightedId(null), 4000);
     return () => clearTimeout(timer);
-  }, [highlightedId]);
+  }, [highlightedId, page, pageSize]);
 
-  const searchable = useMemo(
-    () => contacts.map((contact) => ({ contact, name: normalizeForSearch(contact.name) })),
-    [contacts],
-  );
+  const groups = useMemo(() => (isSearching ? null : groupByLetter(contacts)), [isSearching, contacts]);
 
-  const queryWords = useMemo(() => toQueryWords(deferredQuery), [deferredQuery]);
-  const isSearching = queryWords.length > 0;
-  const results = useMemo(
-    () =>
-      isSearching
-        ? searchable.filter(({ name }) => matchesQuery(name, queryWords)).map(({ contact }) => contact)
-        : contacts,
-    [contacts, searchable, queryWords, isSearching],
-  );
-  const groups = useMemo(() => (isSearching ? null : groupByLetter(results)), [isSearching, results]);
+  if (total === 0) {
+    return (
+      <EmptyState
+        title="Здесь пока никого нет"
+        hint="Добавьте первого человека кнопкой «Добавить контакт» вверху."
+      />
+    );
+  }
 
-  function handleQueryChange(value: string) {
-    setQuery(value);
-    replaceUrlParams((params) => {
-      if (value.trim()) params.set(QUERY_PARAM, value);
-      else params.delete(QUERY_PARAM);
-    });
+  if (contacts.length === 0) {
+    return (
+      <EmptyState
+        title={`Никого не нашли по запросу «${query.trim()}»`}
+        hint="Поиск идёт по имени. Проверьте написание или попробуйте часть имени."
+      />
+    );
   }
 
   return (
     <div>
-      <div className="sticky top-0 z-10 -mx-5 bg-page px-5 pt-1 pb-3">
-        <div className="relative">
-          <SearchIcon
-            aria-hidden
-            className="pointer-events-none absolute top-1/2 left-4 size-5 -translate-y-1/2 text-primary-strong"
-          />
-          <Input
-            type="search"
-            value={query}
-            onChange={(event) => handleQueryChange(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Escape") handleQueryChange("");
-            }}
-            placeholder="Найти по имени"
-            aria-label="Найти контакт по имени"
-            className="h-12 border-transparent pl-12 text-base md:text-base"
-          />
-        </div>
-        <p className="mt-2 text-sm text-muted-foreground" aria-live="polite">
-          {isSearching
-            ? `Найдено: ${results.length} из ${pluralize(contacts.length, OUT_OF_CONTACT_WORDS)}`
-            : pluralize(contacts.length, CONTACT_WORDS)}
-        </p>
+      <div className="overflow-clip bg-card">
+        {groups ? (
+          groups.map((group) => (
+            <section key={group.letter} aria-label={`Буква ${group.letter}`}>
+              <h2 className="sticky top-23 z-[1] border-y bg-card px-4 py-2 text-label text-primary-strong uppercase first:border-t-0 lg:px-5 lg:text-label-lg">
+                {group.letter}
+              </h2>
+              <ContactRows items={group.items} highlightedId={highlightedId} />
+            </section>
+          ))
+        ) : (
+          <ContactRows items={contacts} highlightedId={highlightedId} />
+        )}
       </div>
-
-      {contacts.length === 0 ? (
-        <EmptyState
-          title="Здесь пока никого нет"
-          hint="Добавьте первого человека кнопкой «Добавить контакт» вверху."
-        />
-      ) : results.length === 0 ? (
-        <EmptyState
-          title={`Никого не нашли по запросу «${deferredQuery.trim()}»`}
-          hint="Поиск идёт по имени. Проверьте написание или попробуйте часть имени."
-        />
-      ) : (
-        <div className="overflow-clip bg-card">
-          {groups ? (
-            groups.map((group) => (
-              <section key={group.letter} aria-label={`Буква ${group.letter}`}>
-                <h2 className="sticky top-23 z-[1] border-y bg-card px-4 py-2 text-label text-primary-strong uppercase first:border-t-0 lg:px-5 lg:text-label-lg">
-                  {group.letter}
-                </h2>
-                <ContactRows items={group.items} highlightedId={highlightedId} />
-              </section>
-            ))
-          ) : (
-            <ContactRows items={results} highlightedId={highlightedId} />
-          )}
-        </div>
-      )}
+      <ContactPagination query={query} page={page} pageCount={pageCount} pageSize={pageSize} />
     </div>
   );
 }
