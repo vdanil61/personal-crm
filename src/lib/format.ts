@@ -28,3 +28,11 @@ const dateTimeFormat = new Intl.DateTimeFormat("ru", {
 export function formatDateTime(date: Date): string {
   return dateTimeFormat.format(date);
 }
+
+const dayMonthFormat = new Intl.DateTimeFormat("ru", { day: "numeric", month: "long" });
+
+// "22 августа"; "3 марта 2025" when the year is not the current one
+export function formatDayMonth(date: Date, now: Date): string {
+  const dayMonth = dayMonthFormat.format(date);
+  return date.getFullYear() === now.getFullYear() ? dayMonth : `${dayMonth} ${date.getFullYear()}`;
+}

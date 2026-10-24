@@ -9,6 +9,7 @@ import type {
   ContactFormState,
   ContactFormValues,
   DeleteContactResult,
+  MarkContactedResult,
   NoteFormState,
   RestoreContactResult,
 } from "@/lib/form-state";
@@ -25,6 +26,7 @@ import {
 const SAVE_FAILED = "Не удалось сохранить. Проверьте, что база данных запущена, и попробуйте ещё раз.";
 const DELETE_FAILED = "Не удалось удалить. Проверьте, что база данных запущена, и попробуйте ещё раз.";
 const RESTORE_FAILED = "Не удалось вернуть контакт. Проверьте, что база данных запущена, и попробуйте ещё раз.";
+const MARK_FAILED = "Не удалось отметить. Проверьте, что база данных запущена, и попробуйте ещё раз.";
 const CONTACT_GONE = "Этот контакт больше не существует.";
 
 // Database errors carry the failed query with its values (names, phones, note text),
@@ -151,6 +153,31 @@ export async function addNote(
   } catch (err) {
     console.error(`Failed to add note: ${describeError(err)}`);
     return { status: "error", body, message: SAVE_FAILED };
+  }
+}
+
+// "Связался" in the keep-in-touch block: the contact was in touch now, without a note.
+// The time comes from the database, as for notes, so the two can be compared.
+export async function markContacted(contactId: string): Promise<MarkContactedResult> {
+  if (!idSchema.safeParse(contactId).success) {
+    throw new Error("Invalid contact id");
+  }
+
+  try {
+    const marked = await getDb()
+      .update(contacts)
+      .set({ lastContactedAt: sql`now()`, updatedAt: sql`now()` })
+      .where(eq(contacts.id, contactId))
+      .returning({ id: contacts.id });
+    // Also when the contact was already gone, so the page stops showing it
+    revalidatePath("/", "layout");
+    if (marked.length === 0) {
+      return { status: "error", message: CONTACT_GONE };
+    }
+    return { status: "success" };
+  } catch (err) {
+    console.error(`Failed to mark contact as contacted: ${describeError(err)}`);
+    return { status: "error", message: MARK_FAILED };
   }
 }
 

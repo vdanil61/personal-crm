@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Изменить контакт — компьютер</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#3c3fc4}a:hover{color:#4b4fe0}
+input::placeholder,textarea::placeholder{color:#5d6077}
+button{cursor:pointer}
+.opt:hover{background:#eceef5}
+</style>
+</helmet>
+<div style="position: relative; min-height: 1000px; background: linear-gradient(180deg, #eceef5 0%, #e4e6f7 18%, #ebe4f5 36%, #e1ebf4 56%, #e8e6f8 76%, #eceef5 100%); color: #16182b; font-family: 'Geologica', system-ui, sans-serif; font-size: 16px; line-height: 1.5">
+  <div aria-hidden="true">
+    <header style="max-width: 768px; margin: 0 auto; height: 80px; padding: 0 20px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 600; line-height: 1">
+      <span style="width: 22px; height: 22px; background: #4b4fe0"></span>Личная CRM
+    </header>
+    <div style="max-width: 768px; margin: 0 auto; padding: 32px 20px 64px; box-sizing: border-box">
+      <p style="margin: 0 0 16px; font-size: 14px; color: #3c3fc4">← Все контакты</p>
+      <div style="background: #ffffff; padding: 28px; display: flex; align-items: flex-start; gap: 16px">
+        <span style="width: 56px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #4b4fe0; color: #ffffff; font-size: 18px; font-weight: 500">АС</span>
+        <div style="flex: 1">
+          <p style="margin: 0; font-size: 26px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 500">Анна Смирнова</p>
+          <p style="margin: 4px 0 0; font-size: 15px; font-weight: 300; color: #5d6077">Дизайнер интерфейсов, бывшая коллега</p>
+        </div>
+      </div>
+      <div style="margin-top: 12px; background: #ffffff; height: 420px"></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(22, 24, 43, 0.2); display: flex; justify-content: center; align-items: flex-start; padding: 72px 16px 0">
+    <div role="dialog" aria-modal="true" aria-labelledby="edit-title" aria-describedby="edit-desc" style="position: relative; width: 100%; max-width: 512px; box-sizing: border-box; background: #ffffff; padding: 24px; box-shadow: 0 24px 60px rgba(40, 44, 110, 0.1); display: flex; flex-direction: column; gap: 16px">
+      <a href="Card.dc.html" aria-label="Закрыть" style="position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; color: #5d6077">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </a>
+      <div style="display: flex; flex-direction: column; gap: 8px">
+        <h2 id="edit-title" style="margin: 0; font-size: 20px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 500">Изменить контакт</h2>
+        <p id="edit-desc" style="margin: 0; font-size: 14px; color: #5d6077">Поправьте данные и нажмите «Сохранить».</p>
+      </div>
+
+      <form style="display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-name" style="font-size: 14px; font-weight: 500; line-height: 1">Имя</label>
+          <input id="contact-name" value="{{v.name}}" onChange="{{set.name}}" autocomplete="off" style="height: 40px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 14px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-about" style="font-size: 14px; font-weight: 500; line-height: 1">Кто это</label>
+          <input id="contact-about" value="{{v.about}}" onChange="{{set.about}}" autocomplete="off" placeholder="Дизайнер, сестра Лены, тренер по теннису…" style="height: 40px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 14px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-howWeMet" style="font-size: 14px; font-weight: 500; line-height: 1">Откуда знакомы</label>
+          <textarea id="contact-howWeMet" rows="2" value="{{v.howWeMet}}" onChange="{{set.howWeMet}}" placeholder="Учились вместе, познакомились на конференции…" style="min-height: 64px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 8px 12px; font-family: inherit; font-size: 14px; line-height: 1.5; color: #16182b; resize: vertical"></textarea>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label for="contact-phone" style="font-size: 14px; font-weight: 500; line-height: 1">Телефон</label>
+            <input id="contact-phone" type="tel" value="{{v.phone}}" onChange="{{set.phone}}" autocomplete="off" placeholder="+7 900 123-45-67" style="height: 40px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 14px; color: #16182b">
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <label for="contact-email" style="font-size: 14px; font-weight: 500; line-height: 1">Почта</label>
+            <input id="contact-email" type="email" value="{{v.email}}" onChange="{{set.email}}" autocomplete="off" placeholder="anna@example.com" style="height: 40px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 14px; color: #16182b">
+          </div>
+        </div>
+
+        <div style="position: relative; display: flex; flex-direction: column; gap: 8px">
+          <label id="contact-frequency-label" for="contact-frequency" style="font-size: 14px; font-weight: 500; line-height: 1">Как часто общаться</label>
+          <button id="contact-frequency" type="button" onClick="{{toggleOpen}}" aria-haspopup="listbox" aria-expanded="{{open}}" aria-labelledby="contact-frequency-label contact-frequency" style="height: 40px; box-sizing: border-box; border: 1px solid {{triggerBorder}}; background: #ffffff; padding: 0 10px 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: inherit; font-size: 14px; color: #16182b; text-align: left">
+            {{currentLabel}}
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5d6077" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+          <sc-if value="{{open}}" hint-placeholder-val="{{true}}">
+            <div role="listbox" aria-labelledby="contact-frequency-label" style="position: absolute; top: 72px; left: 0; right: 0; z-index: 3; background: #ffffff; border: 1px solid #d4d6ef; box-shadow: 0 24px 60px rgba(40, 44, 110, 0.16); padding: 4px; display: flex; flex-direction: column">
+              <sc-for list="{{options}}" as="o" hint-placeholder-count="5">
+                <button type="button" role="option" aria-selected="{{o.selected}}" onClick="{{o.pick}}" class="opt" style="height: 36px; border: 0; background: {{o.bg}}; padding: 0 8px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: inherit; font-size: 14px; color: {{o.color}}; text-align: left">
+                  {{o.label}}
+                  <sc-if value="{{o.selected}}" hint-placeholder-val="{{false}}">
+                    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                  </sc-if>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 8px">
+          <a href="Card.dc.html" style="height: 40px; padding: 0 16px; box-sizing: border-box; display: inline-flex; align-items: center; border: 1px solid #d4d6ef; background: #ffffff; color: #16182b; font-size: 14px; font-weight: 500; text-decoration: none">Отмена</a>
+          <a href="Card.dc.html" style="height: 40px; padding: 0 16px; box-sizing: border-box; display: inline-flex; align-items: center; background: #4b4fe0; color: #ffffff; font-size: 14px; font-weight: 500; text-decoration: none">Сохранить</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"selectOpen":{"editor":"boolean","default":true},"$preview":{"width":1280,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const OPTIONS = [
+      { key: 'none', label: 'Не задано' },
+      { key: 'week', label: 'Раз в неделю' },
+      { key: 'month', label: 'Раз в месяц' },
+      { key: 'quarter', label: 'Раз в квартал' },
+      { key: 'year', label: 'Раз в год' }
+    ];
+    const s = this.state || {};
+    const v = Object.assign({
+      name: 'Анна Смирнова',
+      about: 'Дизайнер интерфейсов, бывшая коллега',
+      howWeMet: 'Работали вместе в студии «Квадрат»',
+      phone: '+7 900 123-45-67',
+      email: 'anna.smirnova@yandex.ru'
+    }, s.values || {});
+    const field = (key) => (event) => this.setState({ values: Object.assign({}, v, { [key]: event.target.value }) });
+    const freq = s.freq || 'month';
+    const open = s.open !== undefined ? s.open : (this.props.selectOpen ?? true);
+    const current = OPTIONS.find((o) => o.key === freq) || OPTIONS[0];
+    return {
+      v,
+      set: { name: field('name'), about: field('about'), howWeMet: field('howWeMet'), phone: field('phone'), email: field('email') },
+      open,
+      toggleOpen: () => this.setState({ open: !open }),
+      triggerBorder: open ? '#4b4fe0' : '#d4d6ef',
+      currentLabel: current.label,
+      options: OPTIONS.map((o) => ({
+        label: o.label,
+        selected: o.key === freq,
+        bg: o.key === freq ? '#dfe1fb' : 'transparent',
+        color: o.key === freq ? '#3c3fc4' : '#16182b',
+        pick: () => this.setState({ freq: o.key, open: false })
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
