@@ -37,3 +37,24 @@ export const noteInputSchema = z.object({
 });
 
 export const idSchema = z.uuid();
+
+// A deleted contact with its notes, kept by the browser for "undo".
+// Only the shape is checked: the form rules above would turn null into "" and could
+// reject data saved before they changed, so undo would fail and the contact be lost.
+const nullableText = z.string().nullable();
+
+export const contactSnapshotSchema = z.object({
+  contact: z.object({
+    id: idSchema,
+    name: z.string(),
+    about: nullableText,
+    howWeMet: nullableText,
+    phone: nullableText,
+    email: nullableText,
+    createdAt: z.date(),
+    updatedAt: z.date(),
+  }),
+  notes: z.array(z.object({ id: idSchema, body: z.string(), createdAt: z.date() })),
+});
+
+export type ContactSnapshot = z.output<typeof contactSnapshotSchema>;

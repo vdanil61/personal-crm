@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { UsersIcon } from "lucide-react";
+import { Trash2Icon, UsersIcon } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import type { ContactListItem } from "@/lib/contacts";
-import { markOpenedFromList } from "@/lib/return-to-list";
+import { markOpenedFromList, takeListScrollToRestore } from "@/lib/return-to-list";
 import { ADDED_PARAM, type PageSize, contactListHref } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
 import { ContactAvatar } from "./avatar";
 import { ContactPagination } from "./contact-pagination";
+import { useDeleteContact } from "./use-delete-contact";
 
 type Group = { letter: string; items: ContactListItem[] };
 
@@ -33,6 +35,18 @@ function groupByLetter(items: ContactListItem[]): Group[] {
     }
   }
   return groups;
+}
+
+const NO_IDS: ReadonlySet<string> = new Set();
+
+// Keyboard focus in a row that is about to disappear moves to the next row, or the previous one
+function moveFocusFromRow(list: HTMLElement | null, contactId: string) {
+  if (!list) return;
+  const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-contact-row]"));
+  const index = rows.findIndex((row) => row.dataset.contactRow === contactId);
+  if (index === -1 || !rows[index].contains(document.activeElement)) return;
+  const neighbour = rows[index + 1] ?? rows[index - 1];
+  (neighbour?.querySelector<HTMLElement>("a") ?? list).focus();
 }
 
 // One page of the list; the server has already searched, sorted and cut it
@@ -74,7 +88,31 @@ export function ContactBrowser({
     return () => clearTimeout(timer);
   }, [highlightedId, page, pageSize]);
 
-  const groups = useMemo(() => (isSearching ? null : groupByLetter(contacts)), [isSearching, contacts]);
+  // A deleted contact disappears at once; the fresh list from the server replaces this
+  const listRef = useRef<HTMLDivElement>(null);
+  const [hiddenIds, hideContact] = useOptimistic(NO_IDS, (ids, id: string) => new Set(ids).add(id));
+  const { deleteWithUndo } = useDeleteContact();
+  const visibleContacts = useMemo(() => contacts.filter((c) => !hiddenIds.has(c.id)), [contacts, hiddenIds]);
+
+  // Back here after deleting a contact on its card
+  useLayoutEffect(() => {
+    const y = takeListScrollToRestore();
+    if (y !== null) window.scrollTo(0, y);
+  }, []);
+
+  const groups = useMemo(
+    () => (isSearching ? null : groupByLetter(visibleContacts)),
+    [isSearching, visibleContacts],
+  );
+
+  function handleDelete(contact: ContactListItem) {
+    deleteWithUndo(contact, {
+      onStart: () => {
+        moveFocusFromRow(listRef.current, contact.id);
+        hideContact(contact.id);
+      },
+    });
+  }
 
   if (total === 0) {
     return (
@@ -96,18 +134,18 @@ export function ContactBrowser({
 
   return (
     <div>
-      <div className="overflow-clip bg-card">
+      <div ref={listRef} tabIndex={-1} className="overflow-clip bg-card outline-none">
         {groups ? (
           groups.map((group) => (
             <section key={group.letter} aria-label={`Буква ${group.letter}`}>
               <h2 className="sticky top-23 z-[1] border-y bg-card px-4 py-2 text-label text-primary-strong uppercase first:border-t-0 lg:px-5 lg:text-label-lg">
                 {group.letter}
               </h2>
-              <ContactRows items={group.items} highlightedId={highlightedId} />
+              <ContactRows items={group.items} highlightedId={highlightedId} onDelete={handleDelete} />
             </section>
           ))
         ) : (
-          <ContactRows items={contacts} highlightedId={highlightedId} />
+          <ContactRows items={visibleContacts} highlightedId={highlightedId} onDelete={handleDelete} />
         )}
       </div>
       <ContactPagination query={query} page={page} pageCount={pageCount} pageSize={pageSize} />
@@ -115,22 +153,35 @@ export function ContactBrowser({
   );
 }
 
-function ContactRows({ items, highlightedId }: { items: ContactListItem[]; highlightedId: string | null }) {
+function ContactRows({
+  items,
+  highlightedId,
+  onDelete,
+}: {
+  items: ContactListItem[];
+  highlightedId: string | null;
+  onDelete: (contact: ContactListItem) => void;
+}) {
   return (
     <ul className="divide-y">
       {items.map((contact) => {
         const details = [contact.about, contact.howWeMet].filter(Boolean).join(" · ");
         return (
-          <li key={contact.id} id={`contact-${contact.id}`} className="scroll-mt-32">
+          <li
+            key={contact.id}
+            id={`contact-${contact.id}`}
+            data-contact-row={contact.id}
+            className={cn(
+              "group/row flex scroll-mt-32 items-center transition-colors duration-700 hover:bg-muted/60 has-[a:focus-visible]:bg-muted",
+              contact.id === highlightedId && "bg-secondary hover:bg-secondary",
+            )}
+          >
             <Link
               href={`/contacts/${contact.id}`}
               onClick={(event) => {
                 if (!event.metaKey && !event.ctrlKey && !event.shiftKey) markOpenedFromList();
               }}
-              className={cn(
-                "flex items-center gap-3 px-4 py-3 transition-colors duration-700 outline-none hover:bg-muted/60 focus-visible:bg-muted lg:gap-4 lg:px-5",
-                contact.id === highlightedId && "bg-secondary hover:bg-secondary",
-              )}
+              className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-2 pl-4 outline-none lg:gap-4 lg:pl-5"
             >
               <ContactAvatar name={contact.name} />
               <div className="min-w-0 flex-1">
@@ -143,6 +194,17 @@ function ContactRows({ items, highlightedId }: { items: ContactListItem[]; highl
                 </div>
               )}
             </Link>
+            {/* Next to the link, not inside it; with a mouse it shows on hover or keyboard focus */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={`Удалить контакт ${contact.name}`}
+              onClick={() => onDelete(contact)}
+              className="mr-2 text-muted-foreground transition-opacity hover:bg-destructive/10 hover:text-destructive pointer-fine:opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 lg:mr-3"
+            >
+              <Trash2Icon aria-hidden />
+            </Button>
           </li>
         );
       })}

@@ -4,6 +4,7 @@ import { MailIcon, PhoneIcon, UsersIcon } from "lucide-react";
 
 import { ContactAvatar } from "@/components/contacts/avatar";
 import { BackToList } from "@/components/contacts/back-to-list";
+import { DeleteContactButton } from "@/components/contacts/delete-contact-button";
 import { EditContactDialog } from "@/components/contacts/edit-contact-dialog";
 import { NoteForm } from "@/components/contacts/note-form";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -39,16 +40,20 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
             <h1 className="text-card-name break-words lg:text-card-name-lg">{contact.name}</h1>
             {contact.about && <p className="mt-1 text-card-meta text-muted-foreground">{contact.about}</p>}
           </div>
-          <EditContactDialog
-            contactId={contact.id}
-            values={{
-              name: contact.name,
-              about: contact.about ?? "",
-              howWeMet: contact.howWeMet ?? "",
-              phone: contact.phone ?? "",
-              email: contact.email ?? "",
-            }}
-          />
+          {/* Stacked on phones, so the name keeps the width it had with one button */}
+          <div className="flex shrink-0 gap-2 max-sm:flex-col">
+            <EditContactDialog
+              contactId={contact.id}
+              values={{
+                name: contact.name,
+                about: contact.about ?? "",
+                howWeMet: contact.howWeMet ?? "",
+                phone: contact.phone ?? "",
+                email: contact.email ?? "",
+              }}
+            />
+            <DeleteContactButton contact={{ id: contact.id, name: contact.name }} />
+          </div>
         </div>
 
         <dl className="mt-5 grid gap-5 border-t pt-5 sm:grid-cols-2 lg:mt-7 lg:pt-7">

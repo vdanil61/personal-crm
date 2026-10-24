@@ -1,4 +1,4 @@
-import type { ContactField } from "./validation";
+import type { ContactField, ContactSnapshot } from "./validation";
 
 export type ContactFormValues = Record<ContactField, string>;
 
@@ -18,3 +18,9 @@ export type NoteFormState =
   | { status: "idle" }
   | { status: "error"; body: string; message: string }
   | { status: "success"; savedAt: number };
+
+export type DeleteContactResult =
+  | { status: "success"; snapshot: ContactSnapshot }
+  | { status: "error"; message: string };
+
+export type RestoreContactResult = { status: "success" } | { status: "error"; message: string };
