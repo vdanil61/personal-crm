@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
       },
     },
   },
+  experimental: {
+    // Nudge coding agents only about Next.js security upgrades
+    agentUpgrade: "security",
+  },
 };
 
 export default nextConfig;
