@@ -1,0 +1,34 @@
+schema: spec-driven
+
+context: |
+  Language: Russian (ru)
+  All artifacts must be written in Russian (ru).
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+  Keep in English: code identifiers, file and folder names, table and column
+  names, commands, paths. Capability folder names are English kebab-case.
+
+  Product: a personal CRM for people the owner knows personally - who they are,
+  how we met, phone, email, notes after conversations.
+  Product idea, main scenario, constraints and out-of-scope list:
+  specs/01-продуктовая-идея.md - read it before planning.
+
+  The owner is not a developer:
+  - Write in plain words; explain any technical term in brackets on first use.
+  - Product decisions are the owner's. Anything the request and specs do not
+    settle - ask the owner, do not invent. Unresolved points go to Open Questions.
+  - New libraries or external services - propose and discuss with the owner first.
+
+  Stack: Next.js (App Router), TypeScript, React, Tailwind CSS, shadcn/ui.
+  Colors, fonts and spacing only via design tokens.
+  PostgreSQL + Drizzle: schema in src/db/schema.ts, migrations in drizzle/.
+  Data access only on the server; the browser never talks to the database.
+  pnpm. Deploy: Docker image built by CI; migrations run as a separate one-off
+  container before the new image starts.
+
+rules:
+  proposal:
+    - State explicitly what is out of scope
+  specs:
+    - Every scenario must be checkable by hand in the running app; these scenarios are the feature's acceptance criteria
+  design:
+    - If the data model changes - describe each migration, what happens to existing data, and how to roll back

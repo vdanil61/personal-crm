@@ -24,3 +24,5 @@ export type DeleteContactResult =
   | { status: "error"; message: string };
 
 export type RestoreContactResult = { status: "success" } | { status: "error"; message: string };
+
+export type MarkContactedResult = { status: "success" } | { status: "error"; message: string };

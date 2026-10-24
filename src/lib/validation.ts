@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { CONTACT_FREQUENCIES } from "./contact-frequency";
+
 // Empty strings from the form become null in the database
 const optionalText = (max: number, tooLong: string) =>
   z
@@ -22,11 +24,15 @@ export const contactInputSchema = z.object({
     (value) => value === null || z.email().safeParse(value).success,
     "Похоже, в адресе почты ошибка",
   ),
+  // "" is "Не задано"
+  contactFrequency: z
+    .enum(["", ...CONTACT_FREQUENCIES], { error: "Выберите частоту из списка" })
+    .transform((value) => (value === "" ? null : value)),
 });
 
 export type ContactInput = z.output<typeof contactInputSchema>;
 export type ContactField = keyof z.input<typeof contactInputSchema>;
-export const contactFields: ContactField[] = ["name", "about", "howWeMet", "phone", "email"];
+export const contactFields: ContactField[] = ["name", "about", "howWeMet", "phone", "email", "contactFrequency"];
 
 export const noteInputSchema = z.object({
   body: z
@@ -53,6 +59,9 @@ export const contactSnapshotSchema = z.object({
     email: nullableText,
     createdAt: z.date(),
     updatedAt: z.date(),
+    // Missing in a snapshot made by an older version of the app: treated as empty
+    contactFrequency: z.enum(CONTACT_FREQUENCIES).nullable().default(null),
+    lastContactedAt: z.date().nullable().default(null),
   }),
   notes: z.array(z.object({ id: idSchema, body: z.string(), createdAt: z.date() })),
 });

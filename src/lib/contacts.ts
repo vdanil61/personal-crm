@@ -1,9 +1,10 @@
 import "server-only";
 
-import { type SQL, and, count, desc, eq, sql } from "drizzle-orm";
+import { type SQL, and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { contacts, notes } from "@/db/schema";
+import { type ContactFrequency, frequencyIntervals } from "@/lib/contact-frequency";
 import { type PageSize, toQueryWords } from "@/lib/search";
 
 export type ContactListItem = {
@@ -12,6 +13,14 @@ export type ContactListItem = {
   about: string | null;
   howWeMet: string | null;
   phone: string | null;
+};
+
+export type OverdueContact = {
+  id: string;
+  name: string;
+  frequency: ContactFrequency;
+  // The latest note or "Связался"; null if there was neither
+  lastContactAt: Date | null;
 };
 
 export type ContactListPage = {
@@ -93,6 +102,45 @@ export async function findContactPage(id: string, pageSize: PageSize): Promise<n
     .from(contacts)
     .where(sql`(${nameOrder}, ${contacts.id}) < (${contact.name}::text collate ${RU_COLLATION}, ${id}::uuid)`);
   return Math.floor(before / pageSize) + 1;
+}
+
+const frequencyInterval = sql`case ${contacts.contactFrequency} ${sql.raw(
+  Object.entries(frequencyIntervals)
+    .map(([frequency, interval]) => `when '${frequency}' then interval '${interval}'`)
+    .join(" "),
+)} end`;
+
+// Contacts whose keep-in-touch period has passed, the most overdue first.
+// The last contact is the later of the latest note and the last "Связался";
+// without either the period counts from when the contact was added.
+export async function listOverdueContacts(): Promise<OverdueContact[]> {
+  const db = getDb();
+  // Uses the notes (contact_id, created_at) index
+  const lastNoteAt = sql`(select max(${notes.createdAt}) from ${notes} where ${notes.contactId} = ${contacts.id})`;
+  const lastContactAt = sql`greatest(${lastNoteAt}, ${contacts.lastContactedAt})`;
+
+  const withDue = db
+    .select({
+      id: contacts.id,
+      name: contacts.name,
+      frequency: sql<ContactFrequency>`${contacts.contactFrequency}`.as("frequency"),
+      lastContactAt: lastContactAt.mapWith(contacts.lastContactedAt).as("last_contact_at"),
+      dueAt: sql`coalesce(${lastContactAt}, ${contacts.createdAt}) + ${frequencyInterval}`.as("due_at"),
+    })
+    .from(contacts)
+    .where(isNotNull(contacts.contactFrequency))
+    .as("with_due");
+
+  return db
+    .select({
+      id: withDue.id,
+      name: withDue.name,
+      frequency: withDue.frequency,
+      lastContactAt: withDue.lastContactAt,
+    })
+    .from(withDue)
+    .where(sql`${withDue.dueAt} < now()`)
+    .orderBy(withDue.dueAt, sql`${withDue.name} collate ${RU_COLLATION}`, withDue.id);
 }
 
 export async function getContact(id: string) {

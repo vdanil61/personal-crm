@@ -5,7 +5,9 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CONTACT_FREQUENCIES, frequencyOptionLabels } from "@/lib/contact-frequency";
 import type { ContactFormState, ContactFormValues } from "@/lib/form-state";
 import type { ContactField } from "@/lib/validation";
 
@@ -17,7 +19,20 @@ type ContactFormProps = {
   onCancel: () => void;
 };
 
-const emptyValues: ContactFormValues = { name: "", about: "", howWeMet: "", phone: "", email: "" };
+const emptyValues: ContactFormValues = {
+  name: "",
+  about: "",
+  howWeMet: "",
+  phone: "",
+  email: "",
+  contactFrequency: "",
+};
+
+// null is "Не задано": the select sends it with the form as an empty string
+const frequencyItems = [
+  { value: null, label: "Не задано" },
+  ...CONTACT_FREQUENCIES.map((value) => ({ value, label: frequencyOptionLabels[value] })),
+];
 
 export function ContactForm({ action, initialValues, submitLabel, onSuccess, onCancel }: ContactFormProps) {
   const [state, formAction, pending] = useActionState(action, { status: "idle" });
@@ -78,6 +93,30 @@ export function ContactForm({ action, initialValues, submitLabel, onSuccess, onC
             <FieldError>{errors.email}</FieldError>
           </Field>
         </div>
+        <Field data-invalid={errors.contactFrequency ? true : undefined}>
+          <FieldLabel htmlFor="contact-contactFrequency">Как часто общаться</FieldLabel>
+          <Select name="contactFrequency" items={frequencyItems} defaultValue={values.contactFrequency || null}>
+            <SelectTrigger
+              id="contact-contactFrequency"
+              aria-invalid={errors.contactFrequency ? true : undefined}
+              className="w-full bg-card pr-2.5 pl-3 text-base data-[size=default]:h-10 md:text-sm data-placeholder:text-foreground data-popup-open:border-ring"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false} className="p-1 shadow-card ring-input">
+              {frequencyItems.map((item) => (
+                <SelectItem
+                  key={item.value ?? "none"}
+                  value={item.value}
+                  className="h-11 px-2.5 text-base md:h-9 md:px-2 md:text-sm data-selected:bg-secondary data-selected:text-secondary-foreground"
+                >
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FieldError>{errors.contactFrequency}</FieldError>
+        </Field>
 
         {state.status === "error" && state.message && (
           <p role="alert" className="text-sm text-destructive">

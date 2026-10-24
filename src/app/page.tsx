@@ -3,10 +3,12 @@ import { Suspense, cache } from "react";
 import { AddContactDialog } from "@/components/contacts/add-contact-dialog";
 import { ContactBrowser } from "@/components/contacts/contact-browser";
 import { ContactSearch } from "@/components/contacts/contact-search";
+import { KeepInTouch as KeepInTouchBlock } from "@/components/contacts/keep-in-touch";
 import { PageSizePicker } from "@/components/contacts/page-size-picker";
 import { Skeleton } from "@/components/ui/skeleton";
-import { findContactPage, listContactsPage } from "@/lib/contacts";
-import { formatCount, pluralWord, pluralize } from "@/lib/format";
+import { frequencyLabels } from "@/lib/contact-frequency";
+import { findContactPage, listContactsPage, listOverdueContacts } from "@/lib/contacts";
+import { formatCount, formatDayMonth, pluralWord, pluralize } from "@/lib/format";
 import { ADDED_PARAM, PAGE_PARAM, type PageSize, QUERY_PARAM, SIZE_PARAM, parsePageSize } from "@/lib/search";
 import { idSchema } from "@/lib/validation";
 
@@ -23,6 +25,10 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
         <h1 className="text-page-title lg:text-page-title-lg">Контакты</h1>
         <AddContactDialog />
       </div>
+      {/* Nothing while loading: the block is often absent, a skeleton would flash */}
+      <Suspense>
+        <KeepInTouch searchParams={searchParams} />
+      </Suspense>
       {/* The search field stays outside the list's Suspense: loading a new page
           of results must not replace it with a skeleton while someone is typing */}
       <div className="sticky top-0 z-10 -mx-5 bg-page px-5 pt-1 pb-3">
@@ -66,6 +72,25 @@ const loadContactList = cache(async (query: string, page: number, size: PageSize
   }
   return listContactsPage(query, page, size);
 });
+
+// Hidden while searching: the found contacts matter then
+async function KeepInTouch({ searchParams }: { searchParams: SearchParams }) {
+  const { query } = await readListParams(searchParams);
+  if (query.trim()) return null;
+
+  const overdue = await listOverdueContacts();
+  if (overdue.length === 0) return null;
+
+  const now = new Date();
+  const items = overdue.map((contact) => {
+    // No-break spaces keep the date on one line when the caption wraps on a phone
+    const lastContact = contact.lastContactAt
+      ? `связались ${formatDayMonth(contact.lastContactAt, now).replaceAll(" ", "\u00a0")}`
+      : "ещё не связывались";
+    return { id: contact.id, name: contact.name, caption: `${frequencyLabels[contact.frequency]} · ${lastContact}` };
+  });
+  return <KeepInTouchBlock contacts={items} />;
+}
 
 async function ContactCount({ searchParams }: { searchParams: SearchParams }) {
   const { query, page, size, addedId } = await readListParams(searchParams);

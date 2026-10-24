@@ -1,4 +1,9 @@
-import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { check, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
+import { CONTACT_FREQUENCIES } from "../lib/contact-frequency";
+
+const frequencyList = sql.raw(CONTACT_FREQUENCIES.map((value) => `'${value}'`).join(", "));
 
 export const contacts = pgTable(
   "contacts",
@@ -12,8 +17,15 @@ export const contacts = pgTable(
     email: text("email"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    // How often to keep in touch; null = not set
+    contactFrequency: text("contact_frequency", { enum: CONTACT_FREQUENCIES }),
+    // Last click on "Связался"; null = never
+    lastContactedAt: timestamp("last_contacted_at", { withTimezone: true }),
   },
-  (table) => [index("contacts_name_idx").on(table.name)],
+  (table) => [
+    index("contacts_name_idx").on(table.name),
+    check("contacts_contact_frequency_check", sql`${table.contactFrequency} in (${frequencyList})`),
+  ],
 );
 
 export const notes = pgTable(

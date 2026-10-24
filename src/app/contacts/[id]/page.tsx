@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { MailIcon, PhoneIcon, UsersIcon } from "lucide-react";
+import { MailIcon, PhoneIcon, RepeatIcon, UsersIcon } from "lucide-react";
 
 import { ContactAvatar } from "@/components/contacts/avatar";
 import { BackToList } from "@/components/contacts/back-to-list";
@@ -8,6 +8,7 @@ import { DeleteContactButton } from "@/components/contacts/delete-contact-button
 import { EditContactDialog } from "@/components/contacts/edit-contact-dialog";
 import { NoteForm } from "@/components/contacts/note-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { frequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listNotes } from "@/lib/contacts";
 import { formatDateTime, pluralize } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
                 howWeMet: contact.howWeMet ?? "",
                 phone: contact.phone ?? "",
                 email: contact.email ?? "",
+                contactFrequency: contact.contactFrequency ?? "",
               }}
             />
             <DeleteContactButton contact={{ id: contact.id, name: contact.name }} />
@@ -73,6 +75,9 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
                 {contact.email}
               </a>
             )}
+          </InfoItem>
+          <InfoItem icon={<RepeatIcon />} label="Как часто общаться" className="sm:col-span-2">
+            {contact.contactFrequency && frequencyLabels[contact.contactFrequency]}
           </InfoItem>
         </dl>
       </section>
@@ -156,6 +161,7 @@ function ContactSkeleton() {
           <Skeleton className="h-10 sm:col-span-2" />
           <Skeleton className="h-10" />
           <Skeleton className="h-10" />
+          <Skeleton className="h-10 sm:col-span-2" />
         </div>
       </div>
       <div className="bg-card p-5 lg:p-7">
