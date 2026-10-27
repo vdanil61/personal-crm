@@ -7,7 +7,7 @@ import { deleteContact, restoreContact } from "@/app/actions";
 import type { DeleteContactResult, RestoreContactResult } from "@/lib/form-state";
 import type { ContactSnapshot } from "@/lib/validation";
 
-const UNDO_DURATION_MS = 10_000;
+export const UNDO_DURATION_MS = 10_000;
 
 // Contacts being deleted right now: a second click must not start another delete
 const deleting = new Set<string>();
