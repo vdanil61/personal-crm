@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { check, index, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 import { CONTACT_FREQUENCIES } from "../lib/contact-frequency";
 
@@ -41,5 +41,37 @@ export const notes = pgTable(
   (table) => [index("notes_contact_id_created_at_idx").on(table.contactId, table.createdAt)],
 );
 
+export const groups = pgTable(
+  "groups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // "Семья" and "семья", "Ёлки" and "Елки" are one name: the same folding as the search by name
+    uniqueIndex("groups_name_unique_idx").on(sql`replace(lower(${table.name}), 'ё', 'е')`),
+  ],
+);
+
+// Who is in which group; deleting a contact or a group removes its rows by itself
+export const contactGroups = pgTable(
+  "contact_groups",
+  {
+    contactId: uuid("contact_id")
+      .notNull()
+      .references(() => contacts.id, { onDelete: "cascade" }),
+    groupId: uuid("group_id")
+      .notNull()
+      .references(() => groups.id, { onDelete: "cascade" }),
+  },
+  (table) => [
+    primaryKey({ columns: [table.contactId, table.groupId] }),
+    // For the filter by group and for the number of people in a group
+    index("contact_groups_group_id_idx").on(table.groupId),
+  ],
+);
+
 export type Contact = typeof contacts.$inferSelect;
 export type Note = typeof notes.$inferSelect;
+export type Group = typeof groups.$inferSelect;

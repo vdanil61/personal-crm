@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { LoaderCircleIcon, SearchIcon } from "lucide-react";
 
 import { Input } from "@/components/ui/input";
+import { currentGroupFilter } from "@/lib/group-filter";
 import { QUERY_PARAM, contactListHref, currentPageSize } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,8 @@ export function ContactSearch() {
     const next = value.trim() ? value : "";
     if (next === requestedQuery) return;
     setRequestedQuery(next);
-    // A new query starts from the first page and keeps the page size
-    const href = contactListHref({ query: next, size: currentPageSize() });
+    // A new query starts from the first page and keeps the page size and the filter by groups
+    const href = contactListHref({ query: next, size: currentPageSize(), filter: currentGroupFilter() });
     startTransition(() => router.replace(href, { scroll: false }));
   }
 

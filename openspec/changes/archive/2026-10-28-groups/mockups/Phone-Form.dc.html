@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Изменить контакт — телефон</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#3c3fc4}a:hover{color:#4b4fe0}
+input::placeholder,textarea::placeholder{color:#5d6077}
+button{cursor:pointer}
+.gchip:focus-within{outline:2px solid #4b4fe0;outline-offset:2px}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 960px; overflow: hidden; background: linear-gradient(180deg, #eceef5 0%, #e4e6f7 18%, #ebe4f5 36%, #e1ebf4 56%, #e8e6f8 76%, #eceef5 100%); color: #16182b; font-family: 'Geologica', system-ui, sans-serif; font-size: 16px; line-height: 1.5">
+  <div aria-hidden="true">
+    <header style="height: 64px; padding: 0 20px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 600; line-height: 1">
+      <span style="width: 18px; height: 18px; background: #4b4fe0"></span>Личная CRM
+    </header>
+    <div style="padding: 16px 20px">
+      <p style="margin: 0 0 16px; font-size: 14px; color: #3c3fc4">← Все контакты</p>
+      <div style="background: #ffffff; padding: 20px; display: flex; align-items: flex-start; gap: 16px">
+        <span style="width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: #4b4fe0; color: #ffffff; font-size: 16px; font-weight: 500">АС</span>
+        <div style="flex: 1">
+          <p style="margin: 0; font-size: 22px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 500">Анна Смирнова</p>
+          <p style="margin: 4px 0 0; font-size: 15px; font-weight: 300; color: #5d6077">Дизайнер интерфейсов, бывшая коллега</p>
+        </div>
+      </div>
+      <div style="margin-top: 12px; background: #ffffff; height: 600px"></div>
+    </div>
+  </div>
+
+  <div style="position: absolute; inset: 0; background: rgba(22, 24, 43, 0.2); padding: 24px 16px 0; box-sizing: border-box">
+    <div role="dialog" aria-modal="true" aria-labelledby="edit-title" aria-describedby="edit-desc" style="position: relative; width: 100%; box-sizing: border-box; background: #ffffff; padding: 20px; box-shadow: 0 24px 60px rgba(40, 44, 110, 0.1); display: flex; flex-direction: column; gap: 16px">
+      <a href="Phone-Card.dc.html" aria-label="Закрыть" style="position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #5d6077">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </a>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding-right: 32px">
+        <h2 id="edit-title" style="margin: 0; font-size: 20px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 500">Изменить контакт</h2>
+        <p id="edit-desc" style="margin: 0; font-size: 14px; color: #5d6077">Поправьте данные и нажмите «Сохранить».</p>
+      </div>
+
+      <form style="display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-name" style="font-size: 14px; font-weight: 500; line-height: 1">Имя</label>
+          <input id="contact-name" value="{{v.name}}" onChange="{{set.name}}" autocomplete="off" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-about" style="font-size: 14px; font-weight: 500; line-height: 1">Кто это</label>
+          <input id="contact-about" value="{{v.about}}" onChange="{{set.about}}" autocomplete="off" placeholder="Дизайнер, сестра Лены, тренер по теннису…" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-howWeMet" style="font-size: 14px; font-weight: 500; line-height: 1">Откуда знакомы</label>
+          <textarea id="contact-howWeMet" rows="2" value="{{v.howWeMet}}" onChange="{{set.howWeMet}}" placeholder="Учились вместе, познакомились на конференции…" style="min-height: 72px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 8px 12px; font-family: inherit; font-size: 16px; line-height: 1.5; color: #16182b; resize: vertical"></textarea>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-phone" style="font-size: 14px; font-weight: 500; line-height: 1">Телефон</label>
+          <input id="contact-phone" type="tel" value="{{v.phone}}" onChange="{{set.phone}}" autocomplete="off" placeholder="+7 900 123-45-67" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-email" style="font-size: 14px; font-weight: 500; line-height: 1">Почта</label>
+          <input id="contact-email" type="email" value="{{v.email}}" onChange="{{set.email}}" autocomplete="off" placeholder="anna@example.com" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span id="contact-frequency-label" style="font-size: 14px; font-weight: 500; line-height: 1">Как часто общаться</span>
+          <button id="contact-frequency" type="button" aria-haspopup="listbox" aria-labelledby="contact-frequency-label contact-frequency" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 10px 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: inherit; font-size: 16px; color: #16182b; text-align: left">
+            Раз в месяц
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5d6077" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+        </div>
+
+        <fieldset style="margin: 0; padding: 0; border: 0; min-width: 0">
+          <legend style="padding: 0; margin-bottom: 8px; font-size: 14px; font-weight: 500; line-height: 1">Группы</legend>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px">
+            <sc-for list="{{chips}}" as="g" hint-placeholder-count="5">
+              <label class="gchip" style="position: relative; height: 44px; box-sizing: border-box; padding: 0 16px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid {{g.border}}; background: {{g.bg}}; color: {{g.color}}; font-size: 14px; font-weight: 500; cursor: pointer">
+                <input type="checkbox" name="groupIds" value="{{g.name}}" checked="{{g.on}}" onChange="{{g.toggle}}" style="position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer">
+                <sc-if value="{{g.on}}" hint-placeholder-val="{{false}}">
+                  <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                </sc-if>
+                {{g.name}}
+              </label>
+            </sc-for>
+          </div>
+        </fieldset>
+
+        <div style="display: flex; gap: 8px">
+          <a href="Phone-Card.dc.html" style="flex: 1; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d4d6ef; background: #ffffff; color: #16182b; font-size: 14px; font-weight: 500; text-decoration: none">Отмена</a>
+          <a href="Phone-Card.dc.html" style="flex: 1; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; background: #4b4fe0; color: #ffffff; font-size: 14px; font-weight: 500; text-decoration: none">Сохранить</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ALL = ['Аналитики', 'Друзья', 'Знакомые', 'Семья', 'Теннис'];
+    const s = this.state || {};
+    const v = Object.assign({
+      name: 'Анна Смирнова',
+      about: 'Дизайнер интерфейсов, бывшая коллега',
+      howWeMet: 'Работали вместе в студии «Квадрат»',
+      phone: '+7 900 123-45-67',
+      email: 'anna.smirnova@yandex.ru'
+    }, s.values || {});
+    const field = (key) => (event) => this.setState({ values: Object.assign({}, v, { [key]: event.target.value }) });
+    const groups = s.groups !== undefined ? s.groups : ['Друзья', 'Теннис'];
+    const toggle = (g) => this.setState({ groups: ALL.filter((x) => (x === g ? groups.indexOf(g) === -1 : groups.indexOf(x) !== -1)) });
+    return {
+      v,
+      set: { name: field('name'), about: field('about'), howWeMet: field('howWeMet'), phone: field('phone'), email: field('email') },
+      chips: ALL.map((n) => {
+        const on = groups.indexOf(n) !== -1;
+        return { name: n, on, toggle: () => toggle(n), bg: on ? '#4b4fe0' : '#ffffff', color: on ? '#ffffff' : '#16182b', border: on ? '#4b4fe0' : '#d4d6ef' };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

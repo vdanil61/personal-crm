@@ -42,7 +42,18 @@ export const noteInputSchema = z.object({
     .max(10_000, "Заметка слишком длинная — до 10 000 символов"),
 });
 
+// Whether the name is taken is decided by the unique index in the database, not here
+export const groupNameSchema = z
+  .string()
+  .trim()
+  .min(1, "Укажите название")
+  .max(50, "Название слишком длинное — до 50 символов");
+
 export const idSchema = z.uuid();
+
+// The groups ticked in the contact form; one group sent twice counts once.
+// Whether a group still exists is checked when the contact is saved, not here.
+export const groupIdsSchema = z.array(idSchema).transform((ids) => [...new Set(ids)]);
 
 // A deleted contact with its notes, kept by the browser for "undo".
 // Only the shape is checked: the form rules above would turn null into "" and could
@@ -64,6 +75,17 @@ export const contactSnapshotSchema = z.object({
     lastContactedAt: z.date().nullable().default(null),
   }),
   notes: z.array(z.object({ id: idSchema, body: z.string(), createdAt: z.date() })),
+  // The groups the contact was in; missing in a snapshot made before groups existed: no groups
+  groupIds: z.array(idSchema).default([]),
 });
 
 export type ContactSnapshot = z.output<typeof contactSnapshotSchema>;
+
+// A deleted group with the ids of its people, kept by the browser for "undo".
+// Only the shape is checked, for the same reason as for the contact above.
+export const groupSnapshotSchema = z.object({
+  group: z.object({ id: idSchema, name: z.string(), createdAt: z.date() }),
+  contactIds: z.array(idSchema),
+});
+
+export type GroupSnapshot = z.output<typeof groupSnapshotSchema>;

@@ -2,10 +2,21 @@
 
 import Link from "next/link";
 
+import type { GroupFilter } from "@/lib/group-filter";
 import { PAGE_SIZES, type PageSize, contactListHref } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
-export function PageSizePicker({ query, page, pageSize }: { query: string; page: number; pageSize: PageSize }) {
+export function PageSizePicker({
+  query,
+  filter,
+  page,
+  pageSize,
+}: {
+  query: string;
+  filter: GroupFilter;
+  page: number;
+  pageSize: PageSize;
+}) {
   // The first contact on the screen stays on the screen: on page 3 of 50 that is the 101st,
   // which is on page 11 of 10
   const firstShown = (page - 1) * pageSize;
@@ -18,7 +29,7 @@ export function PageSizePicker({ query, page, pageSize }: { query: string; page:
       {PAGE_SIZES.map((size) => (
         <Link
           key={size}
-          href={contactListHref({ query, page: Math.floor(firstShown / size) + 1, size })}
+          href={contactListHref({ query, filter, page: Math.floor(firstShown / size) + 1, size })}
           aria-label={`По ${size}`}
           aria-current={size === pageSize ? "true" : undefined}
           // The list gets shorter or longer: read it from the top, like a new page

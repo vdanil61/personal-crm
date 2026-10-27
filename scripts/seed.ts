@@ -1,11 +1,12 @@
-// Fills an empty database with realistic test contacts and notes.
+// Fills an empty database with realistic test contacts and notes,
+// and puts about two thirds of the people into one or two of the default groups.
 // Usage: pnpm db:seed [count]   (default: 1000)
 import { fakerRU as faker } from "@faker-js/faker";
-import { count } from "drizzle-orm";
+import { count, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
-import { contacts, notes } from "../src/db/schema";
+import { contactGroups, contacts, groups, notes } from "../src/db/schema";
 import { getDatabaseUrl, loadEnvFile } from "../src/db/url";
 
 type Sex = "male" | "female";
@@ -68,6 +69,9 @@ const TOPICS = [
 ];
 const BOOKS = ["Мастер и Маргарита", "Сто лет одиночества", "Думай медленно… решай быстро", "Атлант расправил плечи", "Шантарам"];
 const MONTHS = ["январе", "феврале", "марте", "апреле", "мае", "июне", "июле", "августе", "сентябре", "октябре", "ноябре", "декабре"];
+
+// The groups every database gets from the migration; they are taken by name, a missing one is skipped
+const DEFAULT_GROUP_NAMES = ["Аналитики", "Друзья", "Знакомые", "Семья", "Теннис"];
 
 const pick = <T>(items: readonly T[]): T => faker.helpers.arrayElement(items);
 const chance = (probability: number) => faker.datatype.boolean({ probability });
@@ -192,6 +196,20 @@ function buildData(total: number) {
   return { contactRows, noteRows };
 }
 
+// About two thirds of the people get one group (more often) or two; the rest stay without groups
+function buildMemberships(contactIds: string[], groupIds: string[]) {
+  const rows: (typeof contactGroups.$inferInsert)[] = [];
+  if (groupIds.length === 0) return rows;
+
+  for (const contactId of contactIds) {
+    if (!chance(2 / 3)) continue;
+    for (const groupId of faker.helpers.arrayElements(groupIds, chance(0.35) ? 2 : 1)) {
+      rows.push({ contactId, groupId });
+    }
+  }
+  return rows;
+}
+
 async function main() {
   loadEnvFile();
   const total = Number(process.argv[2] ?? 1000);
@@ -211,6 +229,7 @@ async function main() {
 
     faker.seed(2026);
     const { contactRows, noteRows } = buildData(total);
+    let membershipCount = 0;
 
     await db.transaction(async (tx) => {
       for (let i = 0; i < contactRows.length; i += 500) {
@@ -219,9 +238,21 @@ async function main() {
       for (let i = 0; i < noteRows.length; i += 1000) {
         await tx.insert(notes).values(noteRows.slice(i, i + 1000));
       }
+
+      const defaultGroups = await tx.select({ id: groups.id }).from(groups).where(inArray(groups.name, DEFAULT_GROUP_NAMES));
+      const memberships = buildMemberships(
+        contactRows.map((row) => row.id as string),
+        defaultGroups.map((group) => group.id),
+      );
+      for (let i = 0; i < memberships.length; i += 1000) {
+        await tx.insert(contactGroups).values(memberships.slice(i, i + 1000));
+      }
+      membershipCount = memberships.length;
     });
 
-    console.log(`Seeded ${contactRows.length} contacts and ${noteRows.length} notes.`);
+    console.log(
+      `Seeded ${contactRows.length} contacts and ${noteRows.length} notes, ${membershipCount} group memberships.`,
+    );
   } finally {
     await pool.end();
   }

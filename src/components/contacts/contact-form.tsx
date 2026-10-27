@@ -1,18 +1,22 @@
 "use client";
 
 import { useActionState, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { CheckIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { CONTACT_FREQUENCIES, frequencyOptionLabels } from "@/lib/contact-frequency";
-import type { ContactFormState, ContactFormValues } from "@/lib/form-state";
+import type { ContactFormState, ContactFormValues, GroupOption } from "@/lib/form-state";
 import type { ContactField } from "@/lib/validation";
 
 type ContactFormProps = {
   action: (prev: ContactFormState, formData: FormData) => Promise<ContactFormState>;
+  // All groups, in the order they are shown
+  groups: GroupOption[];
   initialValues?: Partial<ContactFormValues>;
   submitLabel: string;
   onSuccess: (result: Extract<ContactFormState, { status: "success" }>) => void;
@@ -26,6 +30,7 @@ const emptyValues: ContactFormValues = {
   phone: "",
   email: "",
   contactFrequency: "",
+  groupIds: [],
 };
 
 // null is "Не задано": the select sends it with the form as an empty string
@@ -34,7 +39,18 @@ const frequencyItems = [
   ...CONTACT_FREQUENCIES.map((value) => ({ value, label: frequencyOptionLabels[value] })),
 ];
 
-export function ContactForm({ action, initialValues, submitLabel, onSuccess, onCancel }: ContactFormProps) {
+// A group as a button you tick: a real checkbox (sent with the form as "groupIds") dressed as a label
+function GroupChoice({ group, defaultChecked }: { group: GroupOption; defaultChecked: boolean }) {
+  return (
+    <label className="group/choice relative inline-flex h-9 cursor-pointer items-center gap-1.5 border border-input bg-card px-3.5 text-sm font-medium transition-colors select-none hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:checked]:hover:bg-primary-strong has-[:focus-visible]:ring-3 has-[:focus-visible]:ring-ring/30 max-sm:h-11 max-sm:px-4">
+      <input type="checkbox" name="groupIds" value={group.id} defaultChecked={defaultChecked} className="sr-only" />
+      <CheckIcon aria-hidden className="hidden size-3.5 group-has-[:checked]/choice:block" />
+      {group.name}
+    </label>
+  );
+}
+
+export function ContactForm({ action, groups, initialValues, submitLabel, onSuccess, onCancel }: ContactFormProps) {
   const [state, formAction, pending] = useActionState(action, { status: "idle" });
   // Fixed at open: fresh server data after a save must not change mounted fields
   const [startValues] = useState<ContactFormValues>(() => ({ ...emptyValues, ...initialValues }));
@@ -117,6 +133,27 @@ export function ContactForm({ action, initialValues, submitLabel, onSuccess, onC
           </Select>
           <FieldError>{errors.contactFrequency}</FieldError>
         </Field>
+
+        <FieldSet className="gap-0">
+          <FieldLegend variant="label" className="mb-2">
+            Группы
+          </FieldLegend>
+          {groups.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Групп пока нет. Создайте их на странице{" "}
+              <Link href="/groups" className="font-medium text-primary-strong hover:underline">
+                «Группы»
+              </Link>
+              .
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {groups.map((group) => (
+                <GroupChoice key={group.id} group={group} defaultChecked={values.groupIds.includes(group.id)} />
+              ))}
+            </div>
+          )}
+        </FieldSet>
 
         {state.status === "error" && state.message && (
           <p role="alert" className="text-sm text-destructive">

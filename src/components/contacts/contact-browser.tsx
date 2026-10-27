@@ -8,6 +8,7 @@ import { Trash2Icon, UsersIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { ContactListItem } from "@/lib/contacts";
 import { markOpenedFromList, takeListScrollToRestore } from "@/lib/return-to-list";
+import { type GroupFilter, labelHref } from "@/lib/group-filter";
 import { ADDED_PARAM, type PageSize, contactListHref } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +56,7 @@ export function ContactBrowser({
   contacts,
   total,
   query,
+  filter,
   page,
   pageCount,
   pageSize,
@@ -62,6 +64,7 @@ export function ContactBrowser({
   contacts: ContactListItem[];
   total: number;
   query: string;
+  filter: GroupFilter;
   page: number;
   pageCount: number;
   pageSize: PageSize;
@@ -105,6 +108,8 @@ export function ContactBrowser({
     () => (isSearching ? null : groupByLetter(visibleContacts)),
     [isSearching, visibleContacts],
   );
+  // A group label in a row leads to the same list with this group added to the filter
+  const labels = { query, filter, size: pageSize };
 
   // The contact stays after closing, so the dialog doesn't lose the name while it fades out
   const [toDelete, setToDelete] = useState<ContactListItem | null>(null);
@@ -146,6 +151,15 @@ export function ContactBrowser({
     );
   }
 
+  if (contacts.length === 0 && filter.mode !== "all") {
+    return (
+      <EmptyState
+        title="По выбранным группам никого нет"
+        hint="Показываем только тех, кто входит во все выбранные группы сразу. Попробуйте снять часть групп."
+      />
+    );
+  }
+
   if (contacts.length === 0) {
     return (
       <EmptyState
@@ -164,14 +178,14 @@ export function ContactBrowser({
               <h2 className="sticky top-23 z-[1] border-y bg-card px-4 py-2 text-label text-primary-strong uppercase first:border-t-0 lg:px-5 lg:text-label-lg">
                 {group.letter}
               </h2>
-              <ContactRows items={group.items} highlightedId={highlightedId} onDelete={handleDelete} />
+              <ContactRows items={group.items} highlightedId={highlightedId} onDelete={handleDelete} labels={labels} />
             </section>
           ))
         ) : (
-          <ContactRows items={visibleContacts} highlightedId={highlightedId} onDelete={handleDelete} />
+          <ContactRows items={visibleContacts} highlightedId={highlightedId} onDelete={handleDelete} labels={labels} />
         )}
       </div>
-      <ContactPagination query={query} page={page} pageCount={pageCount} pageSize={pageSize} />
+      <ContactPagination query={query} filter={filter} page={page} pageCount={pageCount} pageSize={pageSize} />
       <ConfirmDeleteDialog
         name={toDelete?.name ?? ""}
         open={confirmOpen}
@@ -183,14 +197,18 @@ export function ContactBrowser({
   );
 }
 
+type RowLabels = { query: string; filter: GroupFilter; size: PageSize };
+
 function ContactRows({
   items,
   highlightedId,
   onDelete,
+  labels,
 }: {
   items: ContactListItem[];
   highlightedId: string | null;
   onDelete: (contact: ContactListItem) => void;
+  labels: RowLabels;
 }) {
   return (
     <ul className="divide-y">
@@ -202,7 +220,7 @@ function ContactRows({
             id={`contact-${contact.id}`}
             data-contact-row={contact.id}
             className={cn(
-              "group/row flex scroll-mt-32 items-center transition-colors duration-700 hover:bg-muted/60 has-[a:focus-visible]:bg-muted",
+              "group/row relative flex scroll-mt-32 items-start transition-colors duration-700 hover:bg-muted/60 has-[a:focus-visible]:bg-muted",
               contact.id === highlightedId && "bg-secondary hover:bg-secondary",
             )}
           >
@@ -211,7 +229,11 @@ function ContactRows({
               onClick={(event) => {
                 if (!event.metaKey && !event.ctrlKey && !event.shiftKey) markOpenedFromList();
               }}
-              className="flex min-w-0 flex-1 items-center gap-3 py-3 pr-2 pl-4 outline-none lg:gap-4 lg:pl-5"
+              className={cn(
+                "flex min-w-0 flex-1 items-start gap-3 py-3 pr-2 pl-4 outline-none lg:gap-4 lg:pl-5",
+                // Room for the row of group labels under the name
+                contact.groups.length > 0 && "pb-9.5",
+              )}
             >
               <ContactAvatar name={contact.name} />
               <div className="min-w-0 flex-1">
@@ -219,7 +241,7 @@ function ContactRows({
                 {details && <div className="truncate text-sm font-light text-muted-foreground">{details}</div>}
               </div>
               {contact.phone && (
-                <div className="hidden shrink-0 text-sm text-muted-foreground tabular-nums sm:block">
+                <div className="hidden shrink-0 pt-2.5 text-sm text-muted-foreground tabular-nums sm:block">
                   {contact.phone}
                 </div>
               )}
@@ -231,10 +253,26 @@ function ContactRows({
               size="icon"
               aria-label={`Удалить контакт ${contact.name}`}
               onClick={() => onDelete(contact)}
-              className="mr-2 text-muted-foreground transition-opacity hover:bg-destructive/10 hover:text-destructive pointer-fine:opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 lg:mr-3"
+              className="mt-3 mr-2 text-muted-foreground transition-opacity hover:bg-destructive/10 hover:text-destructive pointer-fine:opacity-0 group-hover/row:opacity-100 group-focus-within/row:opacity-100 lg:mr-3"
             >
               <Trash2Icon aria-hidden />
             </Button>
+            {contact.groups.length > 0 && (
+              // Over the empty strip under the name; a label that does not fit is cut off at the edge.
+              // The strip lets clicks through, so the empty part of it still opens the card
+              <div className="pointer-events-none absolute right-4 bottom-2 left-[65px] flex h-7.5 items-center overflow-hidden [mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)] lg:right-5 lg:left-[73px]">
+                {contact.groups.map((group) => (
+                  <Link
+                    key={group.id}
+                    href={labelHref(labels, labels.filter, group.id)}
+                    scroll={false}
+                    className="pointer-events-auto inline-flex h-7.5 shrink-0 items-center border-[3px] border-transparent bg-secondary bg-clip-padding px-2 text-xs font-medium whitespace-nowrap text-secondary-foreground transition-colors outline-none hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_8%)] focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {group.name}
+                  </Link>
+                ))}
+              </div>
+            )}
           </li>
         );
       })}

@@ -1,16 +1,18 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { MailIcon, PhoneIcon, RepeatIcon, UsersIcon } from "lucide-react";
+import { MailIcon, PhoneIcon, RepeatIcon, TagIcon, UsersIcon } from "lucide-react";
 
 import { ContactAvatar } from "@/components/contacts/avatar";
 import { BackToList } from "@/components/contacts/back-to-list";
 import { DeleteContactButton } from "@/components/contacts/delete-contact-button";
 import { EditContactDialog } from "@/components/contacts/edit-contact-dialog";
+import { ContactGroups } from "@/components/groups/contact-groups";
 import { NoteForm } from "@/components/contacts/note-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { frequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listNotes } from "@/lib/contacts";
 import { formatDateTime, pluralize } from "@/lib/format";
+import { listContactGroups, listGroups } from "@/lib/groups";
 import { cn } from "@/lib/utils";
 import { idSchema } from "@/lib/validation";
 
@@ -29,7 +31,12 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
   const { id } = await params;
   if (!idSchema.safeParse(id).success) notFound();
 
-  const [contact, notes] = await Promise.all([getContact(id), listNotes(id)]);
+  const [contact, notes, allGroups, contactGroups] = await Promise.all([
+    getContact(id),
+    listNotes(id),
+    listGroups(),
+    listContactGroups(id),
+  ]);
   if (!contact) notFound();
 
   return (
@@ -45,6 +52,7 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
           <div className="flex shrink-0 gap-2 max-sm:flex-col">
             <EditContactDialog
               contactId={contact.id}
+              groups={allGroups.map(({ id, name }) => ({ id, name }))}
               values={{
                 name: contact.name,
                 about: contact.about ?? "",
@@ -52,6 +60,7 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
                 phone: contact.phone ?? "",
                 email: contact.email ?? "",
                 contactFrequency: contact.contactFrequency ?? "",
+                groupIds: contactGroups.map((group) => group.id),
               }}
             />
             <DeleteContactButton contact={{ id: contact.id, name: contact.name }} />
@@ -78,6 +87,13 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
           </InfoItem>
           <InfoItem icon={<RepeatIcon />} label="Как часто общаться" className="sm:col-span-2">
             {contact.contactFrequency && frequencyLabels[contact.contactFrequency]}
+          </InfoItem>
+          <InfoItem icon={<TagIcon />} label="Группы" className="sm:col-span-2">
+            <ContactGroups
+              contactId={contact.id}
+              groups={allGroups.map(({ id, name }) => ({ id, name }))}
+              memberIds={contactGroups.map((group) => group.id)}
+            />
           </InfoItem>
         </dl>
       </section>

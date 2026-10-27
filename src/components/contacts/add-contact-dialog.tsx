@@ -16,12 +16,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { ContactFormState } from "@/lib/form-state";
+import type { ContactFormState, GroupOption } from "@/lib/form-state";
 import { contactListHref, currentPageSize } from "@/lib/search";
 
 import { ContactForm } from "./contact-form";
 
-export function AddContactDialog() {
+export function AddContactDialog({ groups }: { groups: GroupOption[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
@@ -42,13 +42,15 @@ export function AddContactDialog() {
         Добавить контакт
         <CornerMarks />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      {/* Scrolls when the form is taller than the screen, e.g. on a phone */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Новый контакт</DialogTitle>
           <DialogDescription>Обязательно только имя — остальное можно дописать позже.</DialogDescription>
         </DialogHeader>
         <ContactForm
           action={createContact}
+          groups={groups}
           submitLabel="Добавить"
           onSuccess={handleSuccess}
           onCancel={() => setOpen(false)}
