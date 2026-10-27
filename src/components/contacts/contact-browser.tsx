@@ -12,7 +12,9 @@ import { ADDED_PARAM, type PageSize, contactListHref } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
 import { ContactAvatar } from "./avatar";
+import { ConfirmDeleteDialog } from "./confirm-delete-dialog";
 import { ContactPagination } from "./contact-pagination";
+import { markRowsMoved, rowsJustMoved } from "./row-shift-guard";
 import { useDeleteContact } from "./use-delete-contact";
 
 type Group = { letter: string; items: ContactListItem[] };
@@ -39,14 +41,13 @@ function groupByLetter(items: ContactListItem[]): Group[] {
 
 const NO_IDS: ReadonlySet<string> = new Set();
 
-// Keyboard focus in a row that is about to disappear moves to the next row, or the previous one
-function moveFocusFromRow(list: HTMLElement | null, contactId: string) {
-  if (!list) return;
+// Focus leaves a row that is about to disappear for the next row, or the previous one
+function rowNeighbour(list: HTMLElement | null, contactId: string): HTMLElement | null {
+  if (!list) return null;
   const rows = Array.from(list.querySelectorAll<HTMLElement>("[data-contact-row]"));
   const index = rows.findIndex((row) => row.dataset.contactRow === contactId);
-  if (index === -1 || !rows[index].contains(document.activeElement)) return;
   const neighbour = rows[index + 1] ?? rows[index - 1];
-  (neighbour?.querySelector<HTMLElement>("a") ?? list).focus();
+  return neighbour?.querySelector<HTMLElement>("a") ?? list;
 }
 
 // One page of the list; the server has already searched, sorted and cut it
@@ -105,13 +106,35 @@ export function ContactBrowser({
     [isSearching, visibleContacts],
   );
 
+  // The contact stays after closing, so the dialog doesn't lose the name while it fades out
+  const [toDelete, setToDelete] = useState<ContactListItem | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const focusAfterDelete = useRef<HTMLElement | null>(null);
+
   function handleDelete(contact: ContactListItem) {
+    if (rowsJustMoved()) return;
+    setToDelete(contact);
+    setConfirmOpen(true);
+  }
+
+  function handleConfirmDelete() {
+    if (!toDelete) return;
+    const contact = toDelete;
+    setConfirmOpen(false);
+    focusAfterDelete.current = rowNeighbour(listRef.current, contact.id);
     deleteWithUndo(contact, {
       onStart: () => {
-        moveFocusFromRow(listRef.current, contact.id);
+        markRowsMoved();
         hideContact(contact.id);
       },
     });
+  }
+
+  // After a delete focus goes to the neighbouring row, after "cancel" back to the trash button
+  function finalFocus() {
+    const target = focusAfterDelete.current;
+    focusAfterDelete.current = null;
+    return target ?? true;
   }
 
   if (total === 0) {
@@ -149,6 +172,13 @@ export function ContactBrowser({
         )}
       </div>
       <ContactPagination query={query} page={page} pageCount={pageCount} pageSize={pageSize} />
+      <ConfirmDeleteDialog
+        name={toDelete?.name ?? ""}
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={handleConfirmDelete}
+        finalFocus={finalFocus}
+      />
     </div>
   );
 }

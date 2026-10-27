@@ -12,6 +12,7 @@ import { pluralize } from "@/lib/format";
 import { markOpenedFromList } from "@/lib/return-to-list";
 
 import { ContactAvatar } from "./avatar";
+import { markRowsMoved, rowsJustMoved } from "./row-shift-guard";
 
 export type KeepInTouchItem = {
   id: string;
@@ -45,6 +46,8 @@ export function KeepInTouch({ contacts }: { contacts: KeepInTouchItem[] }) {
   });
 
   function handleMark(contact: KeepInTouchItem) {
+    if (rowsJustMoved()) return;
+    markRowsMoved();
     const row = listRef.current?.querySelector(`[data-overdue-row="${contact.id}"]`);
     if (row?.contains(document.activeElement)) {
       const index = shown.findIndex((c) => c.id === contact.id);
@@ -126,7 +129,11 @@ export function KeepInTouch({ contacts }: { contacts: KeepInTouchItem[] }) {
         <button
           type="button"
           aria-expanded={expanded}
-          onClick={() => setExpanded(!expanded)}
+          onClick={() => {
+            // Rows appear or vanish under the button, a second click must not mark anyone
+            markRowsMoved();
+            setExpanded(!expanded);
+          }}
           className="flex h-12 w-full items-center justify-center gap-1.5 border-t text-sm font-medium text-primary-strong outline-none hover:bg-muted/60 focus-visible:bg-muted"
         >
           {expanded ? "Свернуть" : `Показать всех (${visible.length})`}
