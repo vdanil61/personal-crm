@@ -9,9 +9,9 @@ import { PageSizePicker } from "@/components/contacts/page-size-picker";
 import { GroupFilterBar } from "@/components/groups/group-filter-bar";
 import { GroupsLink } from "@/components/groups/groups-link";
 import { Skeleton } from "@/components/ui/skeleton";
-import { frequencyLabels } from "@/lib/contact-frequency";
+import { formatOverdueCaption } from "@/lib/contact-frequency";
 import { findContactPage, listContactsPage, listOverdueContacts } from "@/lib/contacts";
-import { formatCount, formatDayMonth, pluralWord, pluralize } from "@/lib/format";
+import { formatCount, pluralWord, pluralize } from "@/lib/format";
 import { listGroups, resolveGroupFilter } from "@/lib/groups";
 import {
   ADDED_PARAM,
@@ -128,13 +128,11 @@ async function KeepInTouch({ searchParams }: { searchParams: SearchParams }) {
   if (overdue.length === 0) return null;
 
   const now = new Date();
-  const items = overdue.map((contact) => {
-    // No-break spaces keep the date on one line when the caption wraps on a phone
-    const lastContact = contact.lastContactAt
-      ? `связались ${formatDayMonth(contact.lastContactAt, now).replaceAll(" ", "\u00a0")}`
-      : "ещё не связывались";
-    return { id: contact.id, name: contact.name, caption: `${frequencyLabels[contact.frequency]} · ${lastContact}` };
-  });
+  const items = overdue.map((contact) => ({
+    id: contact.id,
+    name: contact.name,
+    caption: formatOverdueCaption(contact, now),
+  }));
   return <KeepInTouchBlock contacts={items} />;
 }
 
