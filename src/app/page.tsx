@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense, cache } from "react";
 
 import { AddContactDialog } from "@/components/contacts/add-contact-dialog";
@@ -5,11 +6,22 @@ import { ContactBrowser } from "@/components/contacts/contact-browser";
 import { ContactSearch } from "@/components/contacts/contact-search";
 import { KeepInTouch as KeepInTouchBlock } from "@/components/contacts/keep-in-touch";
 import { PageSizePicker } from "@/components/contacts/page-size-picker";
+import { GroupFilterBar } from "@/components/groups/group-filter-bar";
+import { GroupsLink } from "@/components/groups/groups-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { frequencyLabels } from "@/lib/contact-frequency";
 import { findContactPage, listContactsPage, listOverdueContacts } from "@/lib/contacts";
 import { formatCount, formatDayMonth, pluralWord, pluralize } from "@/lib/format";
-import { ADDED_PARAM, PAGE_PARAM, type PageSize, QUERY_PARAM, SIZE_PARAM, parsePageSize } from "@/lib/search";
+import { listGroups, resolveGroupFilter } from "@/lib/groups";
+import {
+  ADDED_PARAM,
+  GROUPS_PARAM,
+  PAGE_PARAM,
+  type PageSize,
+  QUERY_PARAM,
+  SIZE_PARAM,
+  parsePageSize,
+} from "@/lib/search";
 import { idSchema } from "@/lib/validation";
 
 const CONTACT_WORDS: [string, string, string] = ["контакт", "контакта", "контактов"];
@@ -23,8 +35,19 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
     <>
       <div className="mb-6 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between sm:gap-4 lg:mb-8">
         <h1 className="text-page-title lg:text-page-title-lg">Контакты</h1>
-        <AddContactDialog />
+        <div className="flex gap-3">
+          <GroupsLink />
+          {/* The button never shrinks by itself, so on phones it gets the width that is left */}
+          <div className="min-w-0 flex-1 sm:flex-none">
+            <Suspense fallback={<Skeleton className="h-12 w-full bg-card sm:w-48" />}>
+              <AddContact />
+            </Suspense>
+          </div>
+        </div>
       </div>
+      <Suspense fallback={<Skeleton className="mb-6 h-9 w-full bg-card max-sm:h-11" />}>
+        <GroupFilter searchParams={searchParams} />
+      </Suspense>
       {/* Nothing while loading: the block is often absent, a skeleton would flash */}
       <Suspense>
         <KeepInTouch searchParams={searchParams} />
@@ -46,6 +69,23 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
   );
 }
 
+// The groups are needed by the filter and by the form of a new contact: one query per request
+const loadGroups = cache(listGroups);
+
+async function GroupFilter({ searchParams }: { searchParams: SearchParams }) {
+  const { groupsParam } = await readListParams(searchParams);
+  const [groups, filter] = await Promise.all([loadGroups(), resolveGroupFilter(groupsParam)]);
+  return <GroupFilterBar groups={groups.map(({ id, name }) => ({ id, name }))} filter={filter} />;
+}
+
+// The form of a new contact offers the groups, so they come from the server with the button
+async function AddContact() {
+  // Read at request time, never from a build-time prerender: the build has no database
+  await connection();
+  const groups = await loadGroups();
+  return <AddContactDialog groups={groups.map(({ id, name }) => ({ id, name }))} />;
+}
+
 function firstValue(value: string | string[] | undefined): string {
   return (Array.isArray(value) ? value[0] : value) ?? "";
 }
@@ -59,26 +99,32 @@ async function readListParams(searchParams: SearchParams) {
     page: Number.isInteger(page) && page >= 1 ? page : 1,
     size: parsePageSize(firstValue(params[SIZE_PARAM])),
     addedId: idSchema.safeParse(addedId).success ? addedId : null,
+    // As in the address: the groups are checked against the database when the list is made
+    groupsParam: firstValue(params[GROUPS_PARAM]),
   };
 }
 
 // The count and the list render separately but show the same data:
 // cache() makes them share one set of database queries per request
-const loadContactList = cache(async (query: string, page: number, size: PageSize, addedId: string | null) => {
-  // A contact was just added: open the full list on the page with it, the list highlights it
-  if (addedId) {
-    const addedPage = await findContactPage(addedId, size);
-    if (addedPage) return listContactsPage("", addedPage, size);
-  }
-  return listContactsPage(query, page, size);
-});
+const loadContactList = cache(
+  async (query: string, page: number, size: PageSize, addedId: string | null, groupsParam: string) => {
+    // A contact was just added: open the full list (no search, no filter) on the page with it,
+    // the list highlights it
+    if (addedId) {
+      const addedPage = await findContactPage(addedId, size);
+      if (addedPage) return listContactsPage("", addedPage, size);
+    }
+    return listContactsPage(query, page, size, await resolveGroupFilter(groupsParam));
+  },
+);
 
-// Hidden while searching: the found contacts matter then
+// Hidden while searching: the found contacts matter then; also hidden when nobody who passes the filter is overdue
 async function KeepInTouch({ searchParams }: { searchParams: SearchParams }) {
-  const { query } = await readListParams(searchParams);
+  const { query, groupsParam } = await readListParams(searchParams);
   if (query.trim()) return null;
 
-  const overdue = await listOverdueContacts();
+  // With a filter by groups the block shows (and counts) only the people who pass it
+  const overdue = await listOverdueContacts(await resolveGroupFilter(groupsParam));
   if (overdue.length === 0) return null;
 
   const now = new Date();
@@ -93,12 +139,12 @@ async function KeepInTouch({ searchParams }: { searchParams: SearchParams }) {
 }
 
 async function ContactCount({ searchParams }: { searchParams: SearchParams }) {
-  const { query, page, size, addedId } = await readListParams(searchParams);
-  const list = await loadContactList(query, page, size, addedId);
+  const { query, page, size, addedId, groupsParam } = await readListParams(searchParams);
+  const list = await loadContactList(query, page, size, addedId, groupsParam);
   return (
     <div className="mt-2 flex h-5 items-center justify-between gap-4 text-sm text-muted-foreground">
       <p aria-live="polite" className="min-w-0 truncate">
-        {list.query.trim() ? (
+        {list.query.trim() || list.filter.mode !== "all" ? (
           <>
             {`Найдено: ${formatCount(list.matched)} из ${formatCount(list.total)}`}
             {/* On a phone the line is shared with the page size picker: the word would wrap */}
@@ -108,19 +154,22 @@ async function ContactCount({ searchParams }: { searchParams: SearchParams }) {
           pluralize(list.total, CONTACT_WORDS)
         )}
       </p>
-      {list.matched > 0 && <PageSizePicker query={list.query} page={list.page} pageSize={list.pageSize} />}
+      {list.matched > 0 && (
+        <PageSizePicker query={list.query} filter={list.filter} page={list.page} pageSize={list.pageSize} />
+      )}
     </div>
   );
 }
 
 async function ContactList({ searchParams }: { searchParams: SearchParams }) {
-  const { query, page, size, addedId } = await readListParams(searchParams);
-  const list = await loadContactList(query, page, size, addedId);
+  const { query, page, size, addedId, groupsParam } = await readListParams(searchParams);
+  const list = await loadContactList(query, page, size, addedId, groupsParam);
   return (
     <ContactBrowser
       contacts={list.items}
       total={list.total}
       query={list.query}
+      filter={list.filter}
       page={list.page}
       pageCount={list.pageCount}
       pageSize={list.pageSize}

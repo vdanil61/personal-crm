@@ -4,7 +4,11 @@ import { type SQL, and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { contacts, notes } from "@/db/schema";
+import { RU_COLLATION } from "@/lib/collation";
 import { type ContactFrequency, frequencyIntervals } from "@/lib/contact-frequency";
+import { ALL_GROUPS, type GroupFilter } from "@/lib/group-filter";
+import type { GroupOption } from "@/lib/form-state";
+import { groupFilterCondition, listGroupsOfContacts } from "@/lib/groups";
 import { type PageSize, toQueryWords } from "@/lib/search";
 
 export type ContactListItem = {
@@ -13,6 +17,8 @@ export type ContactListItem = {
   about: string | null;
   howWeMet: string | null;
   phone: string | null;
+  // The groups the person is in, in Russian alphabetical order
+  groups: GroupOption[];
 };
 
 export type OverdueContact = {
@@ -27,7 +33,9 @@ export type ContactListPage = {
   items: ContactListItem[];
   // Search query as typed; empty when the whole list is shown
   query: string;
-  // All contacts in the database, and how many of them match the query
+  // The filter by groups the list was made with
+  filter: GroupFilter;
+  // All contacts in the database, and how many of them match the query and the filter
   total: number;
   matched: number;
   // Starts at 1; a page past the end shows the last one
@@ -36,22 +44,23 @@ export type ContactListPage = {
   pageSize: PageSize;
 };
 
-// Russian alphabetical order: "ё" next to "е", case does not split names apart.
-// The default collation of the database does not order Cyrillic this way.
-const RU_COLLATION = sql.raw(`"ru-x-icu"`);
 const nameOrder = sql`${contacts.name} collate ${RU_COLLATION}`;
 
 // Every word of the query must appear somewhere in the name, in any order.
 // The name is normalized like the query words (see normalizeForSearch).
 function nameMatches(queryWords: string[]): SQL | undefined {
-  return and(
-    ...queryWords.map((word) => sql`strpos(replace(lower(${contacts.name}), 'ё', 'е'), ${word}) > 0`),
-  );
+  return and(...queryWords.map((word) => sql`strpos(replace(lower(${contacts.name}), 'ё', 'е'), ${word}) > 0`));
 }
 
-export async function listContactsPage(query: string, page: number, pageSize: PageSize): Promise<ContactListPage> {
+export async function listContactsPage(
+  query: string,
+  page: number,
+  pageSize: PageSize,
+  filter: GroupFilter = ALL_GROUPS,
+): Promise<ContactListPage> {
   const db = getDb();
-  const where = nameMatches(toQueryWords(query));
+  // The search and the filter work together: a contact has to pass both
+  const where = and(nameMatches(toQueryWords(query)), groupFilterCondition(filter));
 
   const [counts] = await db
     .select({
@@ -80,9 +89,12 @@ export async function listContactsPage(query: string, page: number, pageSize: Pa
           .limit(pageSize)
           .offset((currentPage - 1) * pageSize);
 
+  const groupsOfItems = await listGroupsOfContacts(items.map((item) => item.id));
+
   return {
-    items,
+    items: items.map((item) => ({ ...item, groups: groupsOfItems.get(item.id) ?? [] })),
     query,
+    filter,
     total: counts.total,
     matched: counts.matched,
     page: currentPage,
@@ -113,7 +125,8 @@ const frequencyInterval = sql`case ${contacts.contactFrequency} ${sql.raw(
 // Contacts whose keep-in-touch period has passed, the most overdue first.
 // The last contact is the later of the latest note and the last "Связался";
 // without either the period counts from when the contact was added.
-export async function listOverdueContacts(): Promise<OverdueContact[]> {
+// With a filter by groups only the people who pass it, the same condition as in the list.
+export async function listOverdueContacts(filter: GroupFilter = ALL_GROUPS): Promise<OverdueContact[]> {
   const db = getDb();
   // Uses the notes (contact_id, created_at) index
   const lastNoteAt = sql`(select max(${notes.createdAt}) from ${notes} where ${notes.contactId} = ${contacts.id})`;
@@ -128,7 +141,7 @@ export async function listOverdueContacts(): Promise<OverdueContact[]> {
       dueAt: sql`coalesce(${lastContactAt}, ${contacts.createdAt}) + ${frequencyInterval}`.as("due_at"),
     })
     .from(contacts)
-    .where(isNotNull(contacts.contactFrequency))
+    .where(and(isNotNull(contacts.contactFrequency), groupFilterCondition(filter)))
     .as("with_due");
 
   return db
@@ -149,9 +162,5 @@ export async function getContact(id: string) {
 }
 
 export async function listNotes(contactId: string) {
-  return getDb()
-    .select()
-    .from(notes)
-    .where(eq(notes.contactId, contactId))
-    .orderBy(desc(notes.createdAt));
+  return getDb().select().from(notes).where(eq(notes.contactId, contactId)).orderBy(desc(notes.createdAt));
 }

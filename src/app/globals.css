@@ -227,7 +227,8 @@
   .lucide {
     stroke-width: 1.5;
   }
-  button:not(:disabled), [role="button"]:not(:disabled) {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
     cursor: pointer;
   }
   html {

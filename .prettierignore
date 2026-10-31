@@ -1,0 +1,14 @@
+# Prettier also skips everything in .gitignore
+
+# Written by tools, not by hand
+pnpm-lock.yaml
+pnpm-workspace.yaml
+drizzle/
+.claude/
+openspec/
+# Next.js rewrites it in its own style
+tsconfig.json
+
+# Docs and mockups: only code and configs are formatted
+*.md
+*.html

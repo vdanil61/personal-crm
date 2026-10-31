@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 
 import { buttonVariants } from "@/components/ui/button";
+import type { GroupFilter } from "@/lib/group-filter";
 import { type PageSize, contactListHref } from "@/lib/search";
 import { cn } from "@/lib/utils";
 
@@ -29,18 +30,20 @@ function pageItems(page: number, pageCount: number): (number | "gap")[] {
 
 export function ContactPagination({
   query,
+  filter,
   page,
   pageCount,
   pageSize,
 }: {
   query: string;
+  filter: GroupFilter;
   page: number;
   pageCount: number;
   pageSize: PageSize;
 }) {
   if (pageCount <= 1) return null;
-  // Every link keeps the search query and the page size
-  const list = { query, size: pageSize };
+  // Every link keeps the search query, the filter by groups and the page size
+  const list = { query, filter, size: pageSize };
 
   return (
     <nav aria-label="Страницы списка" className="mt-4 flex items-center justify-between gap-2">
@@ -58,10 +61,7 @@ export function ContactPagination({
           ) : (
             <li key={item}>
               {item === page ? (
-                <span
-                  aria-current="page"
-                  className={cn(buttonVariants({ size: "icon" }), "tabular-nums")}
-                >
+                <span aria-current="page" className={cn(buttonVariants({ size: "icon" }), "tabular-nums")}>
                   {item}
                 </span>
               ) : (
@@ -94,7 +94,7 @@ function PageLink({
   label,
   children,
 }: {
-  list: { query: string; size: PageSize };
+  list: { query: string; filter: GroupFilter; size: PageSize };
   page: number;
   disabled?: boolean;
   variant?: "outline" | "ghost";

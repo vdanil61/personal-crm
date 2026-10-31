@@ -1,0 +1,42 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-10-28T09:00:00Z" },
+  "title": "Группы — макеты",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1280, "h": 1700, "title": "Главная — компьютер", "is_interactive": true },
+    "Card.dc.html": { "x": 1360, "y": 0, "w": 1280, "h": 1260, "title": "Карточка контакта — компьютер", "is_interactive": true },
+    "Groups.dc.html": { "x": 2720, "y": 0, "w": 1280, "h": 900, "title": "Страница «Группы» — компьютер", "is_interactive": true },
+    "Groups-Dialogs.dc.html": { "x": 4080, "y": 0, "w": 1280, "h": 640, "title": "Страница «Группы»: диалоги — компьютер" },
+    "Form.dc.html": { "x": 0, "y": 2100, "w": 1280, "h": 960, "title": "Изменить контакт — компьютер", "is_interactive": true },
+    "Form-NoGroups.dc.html": { "x": 1360, "y": 2100, "w": 1280, "h": 860, "title": "Новый контакт, групп нет — компьютер", "is_interactive": true },
+    "Phone-Main.dc.html": { "x": 0, "y": 3700, "w": 390, "h": 1800, "title": "Главная — телефон", "is_interactive": true },
+    "Phone-Card.dc.html": { "x": 470, "y": 3700, "w": 390, "h": 1500, "title": "Карточка контакта — телефон", "is_interactive": true },
+    "Phone-Groups.dc.html": { "x": 940, "y": 3700, "w": 390, "h": 1000, "title": "Страница «Группы» — телефон", "is_interactive": true },
+    "Phone-Groups-Dialogs.dc.html": { "x": 1410, "y": 3700, "w": 390, "h": 1100, "title": "Страница «Группы»: диалоги — телефон" },
+    "Phone-Form.dc.html": { "x": 1880, "y": 3700, "w": 390, "h": 960, "title": "Изменить контакт — телефон", "is_interactive": true },
+    "Phone-Form-NoGroups.dc.html": { "x": 2350, "y": 3700, "w": 390, "h": 860, "title": "Новый контакт, групп нет — телефон", "is_interactive": true }
+  },
+  "order": [
+    "Main.dc.html",
+    "Card.dc.html",
+    "Groups.dc.html",
+    "Groups-Dialogs.dc.html",
+    "Form.dc.html",
+    "Form-NoGroups.dc.html",
+    "Phone-Main.dc.html",
+    "Phone-Card.dc.html",
+    "Phone-Groups.dc.html",
+    "Phone-Groups-Dialogs.dc.html",
+    "Phone-Form.dc.html",
+    "Phone-Form-NoGroups.dc.html"
+  ],
+  "notes": {
+    "rowDesktop": { "x": 0, "y": -300, "text": "Компьютер", "kind": "title1", "maxW": 5360 },
+    "rowDesktopForms": { "x": 0, "y": 1800, "text": "Компьютер — форма контакта", "kind": "title1", "maxW": 2640 },
+    "rowPhone": { "x": 0, "y": 3400, "text": "Телефон", "kind": "title1", "maxW": 2740 },
+    "howto": { "x": 5440, "y": 0, "w": 360, "fill": "blue", "text": "Как смотреть: на экранах с синей меткой нажмите Play — всё нажимается: фильтр на главной, метки, группы в карточке и в форме, создание, переименование и удаление групп. Кнопка Tweaks переключает готовые состояния (например, фильтр «Друзья + Теннис» или «групп нет»)." }
+  },
+  "designSystems": []
+}

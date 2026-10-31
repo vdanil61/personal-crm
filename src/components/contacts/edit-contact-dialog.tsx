@@ -14,11 +14,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import type { ContactFormValues } from "@/lib/form-state";
+import type { ContactFormValues, GroupOption } from "@/lib/form-state";
 
 import { ContactForm } from "./contact-form";
 
-export function EditContactDialog({ contactId, values }: { contactId: string; values: ContactFormValues }) {
+export function EditContactDialog({
+  contactId,
+  groups,
+  values,
+}: {
+  contactId: string;
+  groups: GroupOption[];
+  values: ContactFormValues;
+}) {
   const [open, setOpen] = useState(false);
   const action = updateContact.bind(null, contactId);
 
@@ -34,13 +42,15 @@ export function EditContactDialog({ contactId, values }: { contactId: string; va
         {/* Icon-only on phones, so a long name has room */}
         <span className="max-sm:hidden">Изменить</span>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      {/* Scrolls when the form is taller than the screen, e.g. on a phone */}
+      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Изменить контакт</DialogTitle>
           <DialogDescription>Поправьте данные и нажмите «Сохранить».</DialogDescription>
         </DialogHeader>
         <ContactForm
           action={action}
+          groups={groups}
           initialValues={values}
           submitLabel="Сохранить"
           onSuccess={handleSuccess}

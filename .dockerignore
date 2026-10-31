@@ -16,4 +16,7 @@ next-env.d.ts
 deploy
 specs
 *.md
+# Results of e2e runs
+test-results
+playwright-report
 .DS_Store

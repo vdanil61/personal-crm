@@ -1,0 +1,13 @@
+name: Set up the app
+description: Installs pnpm (the version from "packageManager" in package.json), Node.js and the dependencies from pnpm-lock.yaml.
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/setup@v3
+      with:
+        # Same Node.js as in the Docker image (Dockerfile)
+        runtime: node@24.22.0
+        cache: true
+        # pnpm install --frozen-lockfile: fail if pnpm-lock.yaml does not match package.json
+        require-lockfile: true

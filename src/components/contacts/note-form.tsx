@@ -9,10 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import type { NoteFormState } from "@/lib/form-state";
 
 export function NoteForm({ contactId }: { contactId: string }) {
-  const [state, formAction, pending] = useActionState<NoteFormState, FormData>(
-    addNote.bind(null, contactId),
-    { status: "idle" },
-  );
+  const [state, formAction, pending] = useActionState<NoteFormState, FormData>(addNote.bind(null, contactId), {
+    status: "idle",
+  });
   const formRef = useRef<HTMLFormElement>(null);
   const handledSuccess = useRef<number | null>(null);
 

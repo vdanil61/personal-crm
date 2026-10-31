@@ -30,5 +30,8 @@ rules:
     - State explicitly what is out of scope
   specs:
     - Every scenario must be checkable by hand in the running app; these scenarios are the feature's acceptance criteria
+    - Every scenario has its own test
   design:
     - If the data model changes - describe each migration, what happens to existing data, and how to roll back
+  tasks:
+    - Test before code - write the test, run it and see it fail, then write the code and see the test pass

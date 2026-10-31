@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Новый контакт, групп нет — телефон</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;600&amp;display=swap">
+<style>
+body{margin:0}
+a{color:#3c3fc4}a:hover{color:#4b4fe0}
+input::placeholder,textarea::placeholder{color:#5d6077}
+button{cursor:pointer}
+</style>
+</helmet>
+<div style="position: relative; width: 390px; height: 860px; overflow: hidden; background: linear-gradient(180deg, #eceef5 0%, #e4e6f7 18%, #ebe4f5 36%, #e1ebf4 56%, #e8e6f8 76%, #eceef5 100%); color: #16182b; font-family: 'Geologica', system-ui, sans-serif; font-size: 16px; line-height: 1.5">
+  <div style="position: absolute; inset: 0; background: rgba(22, 24, 43, 0.2); padding: 24px 16px 0; box-sizing: border-box">
+    <div role="dialog" aria-modal="true" aria-labelledby="new-title" aria-describedby="new-desc" style="position: relative; width: 100%; box-sizing: border-box; background: #ffffff; padding: 20px; box-shadow: 0 24px 60px rgba(40, 44, 110, 0.1); display: flex; flex-direction: column; gap: 16px">
+      <a href="Phone-Main.dc.html" aria-label="Закрыть" style="position: absolute; top: 8px; right: 8px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #5d6077">
+        <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </a>
+      <div style="display: flex; flex-direction: column; gap: 8px; padding-right: 32px">
+        <h2 id="new-title" style="margin: 0; font-size: 20px; line-height: 1.2; letter-spacing: -0.02em; font-weight: 500">Новый контакт</h2>
+        <p id="new-desc" style="margin: 0; font-size: 14px; color: #5d6077">Обязательно только имя — остальное можно дописать позже.</p>
+      </div>
+
+      <form style="display: flex; flex-direction: column; gap: 16px">
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-name" style="font-size: 14px; font-weight: 500; line-height: 1">Имя</label>
+          <input id="contact-name" autocomplete="off" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-about" style="font-size: 14px; font-weight: 500; line-height: 1">Кто это</label>
+          <input id="contact-about" autocomplete="off" placeholder="Дизайнер, сестра Лены, тренер по теннису…" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-howWeMet" style="font-size: 14px; font-weight: 500; line-height: 1">Откуда знакомы</label>
+          <textarea id="contact-howWeMet" rows="2" placeholder="Учились вместе, познакомились на конференции…" style="min-height: 72px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 8px 12px; font-family: inherit; font-size: 16px; line-height: 1.5; color: #16182b; resize: vertical"></textarea>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-phone" style="font-size: 14px; font-weight: 500; line-height: 1">Телефон</label>
+          <input id="contact-phone" type="tel" autocomplete="off" placeholder="+7 900 123-45-67" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <label for="contact-email" style="font-size: 14px; font-weight: 500; line-height: 1">Почта</label>
+          <input id="contact-email" type="email" autocomplete="off" placeholder="anna@example.com" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 12px; font-family: inherit; font-size: 16px; color: #16182b">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span id="contact-frequency-label" style="font-size: 14px; font-weight: 500; line-height: 1">Как часто общаться</span>
+          <button id="contact-frequency" type="button" aria-haspopup="listbox" aria-labelledby="contact-frequency-label contact-frequency" style="height: 44px; box-sizing: border-box; border: 1px solid #d4d6ef; background: #ffffff; padding: 0 10px 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-family: inherit; font-size: 16px; color: #16182b; text-align: left">
+            Не задано
+            <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5d6077" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+          </button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 8px">
+          <span style="font-size: 14px; font-weight: 500; line-height: 1">Группы</span>
+          <p style="margin: 0; font-size: 14px; color: #5d6077">Групп пока нет. Создайте их на странице <a href="Phone-Groups.dc.html" style="font-weight: 500">«Группы»</a>.</p>
+        </div>
+
+        <div style="display: flex; gap: 8px">
+          <a href="Phone-Main.dc.html" style="flex: 1; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #d4d6ef; background: #ffffff; color: #16182b; font-size: 14px; font-weight: 500; text-decoration: none">Отмена</a>
+          <a href="Phone-Main.dc.html" style="flex: 1; height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; background: #4b4fe0; color: #ffffff; font-size: 14px; font-weight: 500; text-decoration: none">Добавить</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
