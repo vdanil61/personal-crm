@@ -91,6 +91,9 @@
 | Наполнить пустую базу тестовыми контактами | `pnpm db:seed` (или `pnpm db:seed 200` — другое количество) |
 | После изменения схемы в `src/db/schema.ts` — подготовить миграцию | `pnpm db:generate` |
 | Проверить код | `pnpm lint` |
+| Проверить типы | `pnpm typecheck` |
+| Проверить, что код оформлен по правилам | `pnpm format:check` |
+| Оформить код по правилам (переносы строк, пробелы) | `pnpm format` |
 | Запустить автотесты | `pnpm test` |
 | Запустить e2e-тесты (сценарии в браузере) | `pnpm test:e2e` |
 
@@ -135,6 +138,8 @@ PostgreSQL работает локально в Docker. Настройки по�
 | Миграции на сервере | `scripts/migrate.ts` |
 | Проверка «приложение живо» | `src/app/health/route.ts` (адрес `/health`) |
 | Сборка образа для сервера | `Dockerfile` |
+| Проверки pull request (CI) | `.github/workflows/ci.yml` |
+| Правила оформления кода (Prettier) | `.prettierrc.json`, что не проверяется — `.prettierignore` |
 | Выкатка | `.github/workflows/deploy.yml`, скрипты и настройки сервера — в `deploy/` |
 | Требования фич | `openspec/specs/`, фичи в работе — в `openspec/changes/` |
 | Настройки OpenSpec (язык, контекст проекта) | `openspec/config.yaml` |
@@ -162,9 +167,32 @@ curl -fsSL https://raw.githubusercontent.com/Fission-AI/OpenSpec/main/scripts/bi
 
 Обновить OpenSpec: `openspec install`, затем в папке проекта `openspec update`.
 
+## Проверки pull request (CI)
+
+На каждый pull request GitHub Actions запускает проверки (`.github/workflows/ci.yml`):
+
+| Проверка | Что проверяет | Повторить у себя |
+|---|---|---|
+| Lint | ошибки в коде | `pnpm lint` |
+| Format | код оформлен по правилам Prettier | `pnpm format:check`, исправить — `pnpm format` |
+| Types | типы TypeScript сходятся | `pnpm typecheck` |
+| Unit tests | автотесты Vitest на настоящей базе Postgres | `pnpm test` |
+| E2E tests | главный сценарий в настоящем браузере | `pnpm test:e2e` |
+| Build image | Docker-образ для сервера собирается | — |
+
+Базу для тестов CI поднимает сам, только на время проверки: сервер и рабочие контакты проверки не трогают.
+
+Результат — внизу страницы pull request. Зелёные галочки — всё прошло. Красный крестик — ссылка **Details** ведёт в лог, там видно, что упало. Если упал e2e-тест, на странице запуска внизу есть архив `playwright-traces`: скачать, распаковать и открыть `pnpm exec playwright show-trace <файл trace.zip>`.
+
+Правила ветки `main` на GitHub (Settings → Branches):
+
+- в `main` попадает только pull request: push напрямую в `main` не пройдёт, даже от владельца;
+- pull request вливается, только когда все шесть проверок зелёные и ветка не отстала от `main`. Отстала — кнопка **Update branch** на странице pull request, проверки пройдут заново;
+- автовлитие: агент сразу после открытия pull request включает «влить, когда проверки пройдут» (`gh pr merge --auto --squash`). Pull request вольётся сам и сразу выкатится на сервер. Передумали — кнопка **Disable auto-merge** на странице pull request.
+
 ## Выкатка на сервер
 
-Каждый push в `main` (в том числе merge pull request) сам выкатывает новую версию:
+Каждый merge pull request в `main` сам выкатывает новую версию:
 
 1. GitHub Actions собирает Docker-образ, тег — SHA коммита, и кладёт его в GHCR: `ghcr.io/vdanil61/personal-crm`.
 2. Копирует файлы из `deploy/` на сервер и запускает `deploy.sh`:
@@ -173,7 +201,7 @@ curl -fsSL https://raw.githubusercontent.com/Fission-AI/OpenSpec/main/scripts/bi
    - smoke-проверка: `/health` должен ответить 200;
    - удаляет старые образы, оставляет текущий и предыдущий.
 
-Для pull request Actions только проверяет, что образ собирается, на сервер ничего не попадает.
+Pull request на сервер не попадает: его только проверяет CI (см. «Проверки pull request»).
 
 Ход выкатки — в репозитории на GitHub: вкладка **Actions** → **Deploy**. Зелёная галочка — новая версия работает, красный крестик — выкатка упала: в логе видно, на каком шаге.
 

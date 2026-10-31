@@ -1,0 +1,120 @@
+name: CI
+
+# Every pull request is checked before it can be merged into main.
+# The job names below are the required checks of the main branch protection on GitHub:
+# renaming a job means updating the protection too.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the pull request cancels the checks still running for the previous one
+concurrency:
+  group: ci-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-app
+      - run: pnpm lint
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-app
+      - run: pnpm format:check
+
+  types:
+    name: Types
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-app
+      - run: pnpm typecheck
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # A throwaway Postgres that lives only while the job runs, so it needs no password
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: personal_crm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The tests create and use their own database personal_crm_test next to it
+      DATABASE_URL: postgres://postgres@127.0.0.1:5432/personal_crm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-app
+      - run: pnpm test
+
+  e2e:
+    name: E2E tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: personal_crm
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      # The tests create and use their own database personal_crm_e2e next to it
+      DATABASE_URL: postgres://postgres@127.0.0.1:5432/personal_crm
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup-app
+      - name: Install the browser
+        run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
+      # What the page looked like at each step of a failed test: download from the run page,
+      # then `pnpm exec playwright show-trace <file>`
+      - name: Save traces of failed tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-traces
+          path: test-results/
+          retention-days: 7
+
+  image:
+    name: Build image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
+      # The same image the deploy builds, but it goes nowhere
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
