@@ -137,7 +137,11 @@ export function KeepInTouch({ contacts }: { contacts: KeepInTouchItem[] }) {
           className="flex h-12 w-full items-center justify-center gap-1.5 border-t text-sm font-medium text-primary-strong outline-none hover:bg-muted/60 focus-visible:bg-muted"
         >
           {expanded ? "Свернуть" : `Показать всех (${visible.length})`}
-          {expanded ? <ChevronUpIcon aria-hidden className="size-4" /> : <ChevronDownIcon aria-hidden className="size-4" />}
+          {expanded ? (
+            <ChevronUpIcon aria-hidden className="size-4" />
+          ) : (
+            <ChevronDownIcon aria-hidden className="size-4" />
+          )}
         </button>
       )}
     </section>

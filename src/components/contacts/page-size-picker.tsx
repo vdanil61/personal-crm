@@ -22,7 +22,11 @@ export function PageSizePicker({
   const firstShown = (page - 1) * pageSize;
 
   return (
-    <div role="group" aria-label="Сколько контактов показывать на странице" className="flex shrink-0 items-center gap-1">
+    <div
+      role="group"
+      aria-label="Сколько контактов показывать на странице"
+      className="flex shrink-0 items-center gap-1"
+    >
       <span aria-hidden className="mr-1">
         <span className="hidden sm:inline">Показывать </span>по
       </span>

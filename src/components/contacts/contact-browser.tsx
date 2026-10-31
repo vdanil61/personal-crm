@@ -83,9 +83,7 @@ export function ContactBrowser({
 
   useEffect(() => {
     if (!highlightedId) return;
-    document
-      .getElementById(`contact-${highlightedId}`)
-      ?.scrollIntoView({ block: "center", behavior: "smooth" });
+    document.getElementById(`contact-${highlightedId}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
     // Keep the page in the address instead of the added contact: reload and "back" return here
     window.history.replaceState(null, "", contactListHref({ page, size: pageSize }));
     const timer = setTimeout(() => setHighlightedId(null), 4000);
@@ -104,10 +102,7 @@ export function ContactBrowser({
     if (y !== null) window.scrollTo(0, y);
   }, []);
 
-  const groups = useMemo(
-    () => (isSearching ? null : groupByLetter(visibleContacts)),
-    [isSearching, visibleContacts],
-  );
+  const groups = useMemo(() => (isSearching ? null : groupByLetter(visibleContacts)), [isSearching, visibleContacts]);
   // A group label in a row leads to the same list with this group added to the filter
   const labels = { query, filter, size: pageSize };
 
@@ -144,10 +139,7 @@ export function ContactBrowser({
 
   if (total === 0) {
     return (
-      <EmptyState
-        title="Здесь пока никого нет"
-        hint="Добавьте первого человека кнопкой «Добавить контакт» вверху."
-      />
+      <EmptyState title="Здесь пока никого нет" hint="Добавьте первого человека кнопкой «Добавить контакт» вверху." />
     );
   }
 

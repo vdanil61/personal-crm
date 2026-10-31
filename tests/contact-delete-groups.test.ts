@@ -41,7 +41,9 @@ describe("Отмена удаления контакта возвращает г
   it("Группу удалили, пока контакт был удалён", async () => {
     const contact = await contactInTennisAndFriends();
     const snapshot = await deleteAndKeepSnapshot(contact.id);
-    await getDb().delete(groups).where(eq(groups.id, await findGroupId("Теннис")));
+    await getDb()
+      .delete(groups)
+      .where(eq(groups.id, await findGroupId("Теннис")));
 
     const result = await restoreContact(snapshot);
 

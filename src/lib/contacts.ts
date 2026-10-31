@@ -49,9 +49,7 @@ const nameOrder = sql`${contacts.name} collate ${RU_COLLATION}`;
 // Every word of the query must appear somewhere in the name, in any order.
 // The name is normalized like the query words (see normalizeForSearch).
 function nameMatches(queryWords: string[]): SQL | undefined {
-  return and(
-    ...queryWords.map((word) => sql`strpos(replace(lower(${contacts.name}), 'ё', 'е'), ${word}) > 0`),
-  );
+  return and(...queryWords.map((word) => sql`strpos(replace(lower(${contacts.name}), 'ё', 'е'), ${word}) > 0`));
 }
 
 export async function listContactsPage(
@@ -164,9 +162,5 @@ export async function getContact(id: string) {
 }
 
 export async function listNotes(contactId: string) {
-  return getDb()
-    .select()
-    .from(notes)
-    .where(eq(notes.contactId, contactId))
-    .orderBy(desc(notes.createdAt));
+  return getDb().select().from(notes).where(eq(notes.contactId, contactId)).orderBy(desc(notes.createdAt));
 }

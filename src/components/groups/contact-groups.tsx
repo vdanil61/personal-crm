@@ -68,7 +68,10 @@ export function ContactGroups({
           <PencilIcon data-icon="inline-start" />
           Изменить группы
         </PopoverTrigger>
-        <PopoverContent align="start" className="w-64 gap-0 rounded-none p-1 shadow-card max-sm:w-[min(22rem,calc(100vw-3.5rem))]">
+        <PopoverContent
+          align="start"
+          className="w-64 gap-0 rounded-none p-1 shadow-card max-sm:w-[min(22rem,calc(100vw-3.5rem))]"
+        >
           {groups.length === 0 ? (
             <p className="px-2 py-2 text-sm text-muted-foreground">
               Групп пока нет. Создайте их на странице{" "}

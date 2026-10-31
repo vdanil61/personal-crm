@@ -12,7 +12,15 @@ import { frequencyLabels } from "@/lib/contact-frequency";
 import { findContactPage, listContactsPage, listOverdueContacts } from "@/lib/contacts";
 import { formatCount, formatDayMonth, pluralWord, pluralize } from "@/lib/format";
 import { listGroups, resolveGroupFilter } from "@/lib/groups";
-import { ADDED_PARAM, GROUPS_PARAM, PAGE_PARAM, type PageSize, QUERY_PARAM, SIZE_PARAM, parsePageSize } from "@/lib/search";
+import {
+  ADDED_PARAM,
+  GROUPS_PARAM,
+  PAGE_PARAM,
+  type PageSize,
+  QUERY_PARAM,
+  SIZE_PARAM,
+  parsePageSize,
+} from "@/lib/search";
 import { idSchema } from "@/lib/validation";
 
 const CONTACT_WORDS: [string, string, string] = ["контакт", "контакта", "контактов"];

@@ -48,7 +48,11 @@ export async function setContactGroupMembership(
     }
 
     // The locks keep both from being deleted before the row below is written
-    const [contact] = await tx.select({ id: contacts.id }).from(contacts).where(eq(contacts.id, contactId)).for("share");
+    const [contact] = await tx
+      .select({ id: contacts.id })
+      .from(contacts)
+      .where(eq(contacts.id, contactId))
+      .for("share");
     if (!contact) return "no-contact";
     const [group] = await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("share");
     if (!group) return "no-group";
@@ -113,7 +117,9 @@ export async function restoreGroupFromSnapshot({ group, contactIds }: GroupSnaps
         .where(inArray(contacts.id, contactIds.slice(i, i + 1000)))
         .for("share");
       if (existing.length > 0) {
-        await tx.insert(contactGroups).values(existing.map((contact) => ({ contactId: contact.id, groupId: group.id })));
+        await tx
+          .insert(contactGroups)
+          .values(existing.map((contact) => ({ contactId: contact.id, groupId: group.id })));
       }
     }
   });

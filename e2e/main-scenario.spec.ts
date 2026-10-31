@@ -45,7 +45,12 @@ test.describe("Главный сценарий", () => {
 
       await expect(dialog).toBeHidden();
       await expect(page.getByText("4 контакта", { exact: true })).toBeVisible();
-      await expect(contactRows(page)).toHaveText([/Алексей Иванов/, /Борис Петров/, /Вера Соколова/, /Дарья Кузнецова/]);
+      await expect(contactRows(page)).toHaveText([
+        /Алексей Иванов/,
+        /Борис Петров/,
+        /Вера Соколова/,
+        /Дарья Кузнецова/,
+      ]);
     });
 
     await test.step("нашёл по имени → открыл карточку", async () => {
@@ -88,7 +93,12 @@ test.describe("Главный сценарий", () => {
 
         await other.goto(new URL("/", page.url()).href);
         await expect(other.getByText("4 контакта", { exact: true })).toBeVisible();
-        await expect(contactRows(other)).toHaveText([/Алексей Иванов/, /Борис Петров/, /Вера Соколова/, /Дарья Кузнецова/]);
+        await expect(contactRows(other)).toHaveText([
+          /Алексей Иванов/,
+          /Борис Петров/,
+          /Вера Соколова/,
+          /Дарья Кузнецова/,
+        ]);
       } finally {
         await otherBrowser.close();
       }

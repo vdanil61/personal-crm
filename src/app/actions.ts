@@ -44,7 +44,7 @@ const DELETE_FAILED = "Не удалось удалить. Проверьте, �
 const RESTORE_FAILED = "Не удалось вернуть контакт. Проверьте, что база данных запущена, и попробуйте ещё раз.";
 const RESTORE_GROUP_FAILED = "Не удалось вернуть группу. Проверьте, что база данных запущена, и попробуйте ещё раз.";
 const GROUP_TICK_FAILED = "Не удалось сохранить группы. Проверьте, что база данных запущена, и попробуйте ещё раз.";
-const MARK_FAILED ="Не удалось отметить. Проверьте, что база данных запущена, и попробуйте ещё раз.";
+const MARK_FAILED = "Не удалось отметить. Проверьте, что база данных запущена, и попробуйте ещё раз.";
 const CONTACT_GONE = "Этот контакт больше не существует.";
 const GROUP_EXISTS = "Такая группа уже есть";
 const GROUP_GONE = "Эта группа больше не существует.";
@@ -101,10 +101,7 @@ function validateContact(formData: FormData) {
   return { values, data: null, groupIds: groupIds.data, error } as const;
 }
 
-export async function createContact(
-  _prev: ContactFormState,
-  formData: FormData,
-): Promise<ContactFormState> {
+export async function createContact(_prev: ContactFormState, formData: FormData): Promise<ContactFormState> {
   const { values, data, groupIds, error } = validateContact(formData);
   if (error) return error;
 
@@ -183,11 +180,7 @@ export async function createGroup(_prev: GroupFormState, formData: FormData): Pr
   }
 }
 
-export async function renameGroup(
-  groupId: string,
-  _prev: GroupFormState,
-  formData: FormData,
-): Promise<GroupFormState> {
+export async function renameGroup(groupId: string, _prev: GroupFormState, formData: FormData): Promise<GroupFormState> {
   if (!idSchema.safeParse(groupId).success) {
     throw new Error("Invalid group id");
   }
@@ -282,11 +275,7 @@ export async function restoreGroup(snapshot: GroupSnapshot): Promise<RestoreGrou
   }
 }
 
-export async function addNote(
-  contactId: string,
-  _prev: NoteFormState,
-  formData: FormData,
-): Promise<NoteFormState> {
+export async function addNote(contactId: string, _prev: NoteFormState, formData: FormData): Promise<NoteFormState> {
   if (!idSchema.safeParse(contactId).success) {
     throw new Error("Invalid contact id");
   }

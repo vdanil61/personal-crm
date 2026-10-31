@@ -35,11 +35,7 @@ export type ContactField = keyof z.input<typeof contactInputSchema>;
 export const contactFields: ContactField[] = ["name", "about", "howWeMet", "phone", "email", "contactFrequency"];
 
 export const noteInputSchema = z.object({
-  body: z
-    .string()
-    .trim()
-    .min(1, "Заметка пустая")
-    .max(10_000, "Заметка слишком длинная — до 10 000 символов"),
+  body: z.string().trim().min(1, "Заметка пустая").max(10_000, "Заметка слишком длинная — до 10 000 символов"),
 });
 
 // Whether the name is taken is decided by the unique index in the database, not here

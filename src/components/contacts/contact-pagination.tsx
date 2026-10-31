@@ -61,10 +61,7 @@ export function ContactPagination({
           ) : (
             <li key={item}>
               {item === page ? (
-                <span
-                  aria-current="page"
-                  className={cn(buttonVariants({ size: "icon" }), "tabular-nums")}
-                >
+                <span aria-current="page" className={cn(buttonVariants({ size: "icon" }), "tabular-nums")}>
                   {item}
                 </span>
               ) : (

@@ -34,21 +34,16 @@ export type GroupFormState =
   | { status: "success"; groupId: string; name: string; savedAt: number };
 
 export type NoteFormState =
-  | { status: "idle" }
-  | { status: "error"; body: string; message: string }
-  | { status: "success"; savedAt: number };
+  { status: "idle" } | { status: "error"; body: string; message: string } | { status: "success"; savedAt: number };
 
 export type DeleteContactResult =
-  | { status: "success"; snapshot: ContactSnapshot }
-  | { status: "error"; message: string };
+  { status: "success"; snapshot: ContactSnapshot } | { status: "error"; message: string };
 
 export type RestoreContactResult = { status: "success" } | { status: "error"; message: string };
 
 export type SetContactGroupResult = { status: "success" } | { status: "error"; message: string };
 
-export type DeleteGroupResult =
-  | { status: "success"; snapshot: GroupSnapshot }
-  | { status: "error"; message: string };
+export type DeleteGroupResult = { status: "success"; snapshot: GroupSnapshot } | { status: "error"; message: string };
 
 export type RestoreGroupResult = { status: "success" } | { status: "error"; message: string };
 

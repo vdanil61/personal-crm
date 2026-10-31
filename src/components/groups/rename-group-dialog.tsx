@@ -25,7 +25,13 @@ export function RenameGroupDialog({ group }: { group: { id: string; name: string
     <Dialog open={open} onOpenChange={setOpen}>
       {/* Icon-only on phones, so the name has room */}
       <DialogTrigger
-        render={<Button variant="outline" aria-label={`Переименовать группу ${group.name}`} className="max-sm:size-11 max-sm:px-0" />}
+        render={
+          <Button
+            variant="outline"
+            aria-label={`Переименовать группу ${group.name}`}
+            className="max-sm:size-11 max-sm:px-0"
+          />
+        }
       >
         <PencilIcon data-icon="inline-start" />
         <span className="max-sm:hidden">Переименовать</span>

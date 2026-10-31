@@ -15,7 +15,8 @@ const selected = async (...groupNames: string[]): Promise<GroupFilter> => ({
   mode: "groups",
   ids: await Promise.all(groupNames.map(findGroupId)),
 });
-const overdueNames = async (filter: GroupFilter = ALL_GROUPS) => (await listOverdueContacts(filter)).map((c) => c.name).sort();
+const overdueNames = async (filter: GroupFilter = ALL_GROUPS) =>
+  (await listOverdueContacts(filter)).map((c) => c.name).sort();
 
 describe("Блок «Пора связаться» на главной", () => {
   it("Есть просроченные", async () => {
