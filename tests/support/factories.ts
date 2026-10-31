@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
-import { contactGroups, contacts, groups } from "@/db/schema";
+import { contactGroups, contacts, groups, notes } from "@/db/schema";
 
 // Small helpers that put test data straight into the database, bypassing the app code under test
 
@@ -11,6 +11,12 @@ export async function addContact(name: string, values: Partial<typeof contacts.$
     .values({ name, ...values })
     .returning();
   return contact;
+}
+
+// A note written at the given moment; the text does not matter to the tests that use it
+export async function addNote(contactId: string, createdAt: Date) {
+  const [note] = await getDb().insert(notes).values({ contactId, body: "Созвонились", createdAt }).returning();
+  return note;
 }
 
 export async function addGroup(name: string) {

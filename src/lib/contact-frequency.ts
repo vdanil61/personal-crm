@@ -1,3 +1,5 @@
+import { formatDayMonth } from "./format";
+
 // How often to keep in touch with a contact. The form, the validation, the database
 // constraint and the overdue query all take the values from here.
 export const CONTACT_FREQUENCIES = ["week", "month", "quarter", "year"] as const;
@@ -27,3 +29,15 @@ export const frequencyIntervals: Record<ContactFrequency, string> = {
   quarter: "3 months",
   year: "1 year",
 };
+
+// Under the name in the keep-in-touch block: "раз в месяц · связались 22 августа"
+export function formatOverdueCaption(
+  contact: { frequency: ContactFrequency; lastContactAt: Date | null },
+  now: Date,
+): string {
+  // No-break spaces keep the date on one line when the caption wraps on a phone
+  const lastContact = contact.lastContactAt
+    ? `связались ${formatDayMonth(contact.lastContactAt, now).replaceAll(" ", "\u00a0")}`
+    : "ещё не связывались";
+  return `${frequencyLabels[contact.frequency]} · ${lastContact}`;
+}

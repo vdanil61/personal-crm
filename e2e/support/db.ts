@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 
@@ -28,6 +29,29 @@ export async function addContacts(...names: string[]) {
   await getDb()
     .insert(schema.contacts)
     .values(names.map((name) => ({ name })));
+}
+
+export async function addContact(name: string, values: Partial<typeof schema.contacts.$inferInsert> = {}) {
+  const [contact] = await getDb()
+    .insert(schema.contacts)
+    .values({ name, ...values })
+    .returning();
+  return contact;
+}
+
+export async function addNote(contactId: string, createdAt: Date, body = "Созвонились") {
+  await getDb().insert(schema.notes).values({ contactId, body, createdAt });
+}
+
+// Into one of the five default groups
+export async function putInGroup(contactId: string, groupName: string) {
+  const db = getDb();
+  const [group] = await db
+    .select({ id: schema.groups.id })
+    .from(schema.groups)
+    .where(eq(schema.groups.name, groupName));
+  if (!group) throw new Error(`Test setup: no group named "${groupName}"`);
+  await db.insert(schema.contactGroups).values({ contactId, groupId: group.id });
 }
 
 // One worker runs every test file in turn, so the next file opens a new pool
