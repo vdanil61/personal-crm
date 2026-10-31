@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense, cache } from "react";
 
 import { AddContactDialog } from "@/components/contacts/add-contact-dialog";
@@ -79,6 +80,8 @@ async function GroupFilter({ searchParams }: { searchParams: SearchParams }) {
 
 // The form of a new contact offers the groups, so they come from the server with the button
 async function AddContact() {
+  // Read at request time, never from a build-time prerender: the build has no database
+  await connection();
   const groups = await loadGroups();
   return <AddContactDialog groups={groups.map(({ id, name }) => ({ id, name }))} />;
 }

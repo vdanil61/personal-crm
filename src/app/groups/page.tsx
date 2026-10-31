@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { BackToList } from "@/components/contacts/back-to-list";
@@ -24,6 +25,8 @@ export default function GroupsPage() {
 }
 
 async function GroupList() {
+  // Read at request time, never from a build-time prerender: the build has no database
+  await connection();
   const groups = await listGroups();
 
   if (groups.length === 0) {
