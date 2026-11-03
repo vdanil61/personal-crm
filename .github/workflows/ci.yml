@@ -60,12 +60,33 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # The same mail catcher as on the developer machine: tests read the sent emails from it
+      mailpit:
+        image: axllent/mailpit:v1.33.0
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "/mailpit readyz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       # The tests create and use their own database personal_crm_test next to it
       DATABASE_URL: postgres://postgres@127.0.0.1:5432/personal_crm
+      SMTP_URL: smtp://127.0.0.1:1025
+      # A made-up address: this file is public
+      MAIL_FROM: "Личная CRM <noreply@example.test>"
+      MAILPIT_URL: http://127.0.0.1:8025
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-app
+      # A new login key for every run: it is not stored anywhere
+      - name: Create the login key
+        run: |
+          key=$(openssl rand -hex 32)
+          echo "::add-mask::$key"
+          echo "BETTER_AUTH_SECRET=$key" >> "$GITHUB_ENV"
       - run: pnpm test
 
   e2e:
@@ -85,12 +106,33 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
+      # The same mail catcher as on the developer machine: tests read the sent emails from it
+      mailpit:
+        image: axllent/mailpit:v1.33.0
+        ports:
+          - 1025:1025
+          - 8025:8025
+        options: >-
+          --health-cmd "/mailpit readyz"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       # The tests create and use their own database personal_crm_e2e next to it
       DATABASE_URL: postgres://postgres@127.0.0.1:5432/personal_crm
+      SMTP_URL: smtp://127.0.0.1:1025
+      # A made-up address: this file is public
+      MAIL_FROM: "Личная CRM <noreply@example.test>"
+      MAILPIT_URL: http://127.0.0.1:8025
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup-app
+      # A new login key for every run: it is not stored anywhere
+      - name: Create the login key
+        run: |
+          key=$(openssl rand -hex 32)
+          echo "::add-mask::$key"
+          echo "BETTER_AUTH_SECRET=$key" >> "$GITHUB_ENV"
       - name: Install the browser
         run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e

@@ -19,13 +19,18 @@ export type GroupListItem = {
 export type Tx = Parameters<Parameters<ReturnType<typeof getDb>["transaction"]>[0]>[0];
 
 // Makes these groups the groups of the contact, as the contact form does: the ones not listed
-// are dropped. Groups deleted while the form was open are skipped without an error.
-export async function replaceContactGroups(tx: Tx, contactId: string, groupIds: string[]) {
+// are dropped. Groups deleted while the form was open are skipped without an error,
+// and so are groups of another user: the browser's word about whose group it is counts for nothing.
+export async function replaceContactGroups(tx: Tx, userId: string, contactId: string, groupIds: string[]) {
   await tx.delete(contactGroups).where(eq(contactGroups.contactId, contactId));
   if (groupIds.length === 0) return;
 
   // The lock keeps these groups from being deleted before the rows below are written
-  const existing = await tx.select({ id: groups.id }).from(groups).where(inArray(groups.id, groupIds)).for("share");
+  const existing = await tx
+    .select({ id: groups.id })
+    .from(groups)
+    .where(and(inArray(groups.id, groupIds), eq(groups.userId, userId)))
+    .for("share");
   if (existing.length > 0) {
     await tx.insert(contactGroups).values(existing.map((group) => ({ contactId, groupId: group.id })));
   }
@@ -33,17 +38,30 @@ export async function replaceContactGroups(tx: Tx, contactId: string, groupIds: 
 
 // Adds or removes one group of one contact, as a tick in the contact card does.
 // One link at a time, so two quick ticks in a row don't overwrite each other.
-// Doing it twice is fine. Says what is missing when the contact or the group is already gone.
+// Doing it twice is fine. Says what is missing when the contact or the group is already gone,
+// or is not the user's: a stranger's record looks like a missing one.
 export async function setContactGroupMembership(
+  userId: string,
   contactId: string,
   groupId: string,
   member: boolean,
 ): Promise<"done" | "no-contact" | "no-group"> {
   return getDb().transaction(async (tx) => {
     if (!member) {
+      // Only a link between the user's own contact and the user's own group
       await tx
         .delete(contactGroups)
-        .where(and(eq(contactGroups.contactId, contactId), eq(contactGroups.groupId, groupId)));
+        .where(
+          and(
+            eq(contactGroups.contactId, contactId),
+            eq(contactGroups.groupId, groupId),
+            inArray(
+              contactGroups.contactId,
+              tx.select({ id: contacts.id }).from(contacts).where(eq(contacts.userId, userId)),
+            ),
+            inArray(contactGroups.groupId, tx.select({ id: groups.id }).from(groups).where(eq(groups.userId, userId))),
+          ),
+        );
       return "done";
     }
 
@@ -51,10 +69,14 @@ export async function setContactGroupMembership(
     const [contact] = await tx
       .select({ id: contacts.id })
       .from(contacts)
-      .where(eq(contacts.id, contactId))
+      .where(and(eq(contacts.id, contactId), eq(contacts.userId, userId)))
       .for("share");
     if (!contact) return "no-contact";
-    const [group] = await tx.select({ id: groups.id }).from(groups).where(eq(groups.id, groupId)).for("share");
+    const [group] = await tx
+      .select({ id: groups.id })
+      .from(groups)
+      .where(and(eq(groups.id, groupId), eq(groups.userId, userId)))
+      .for("share");
     if (!group) return "no-group";
 
     await tx.insert(contactGroups).values({ contactId, groupId }).onConflictDoNothing();
@@ -62,30 +84,35 @@ export async function setContactGroupMembership(
   });
 }
 
-// Fails with Postgres error 23505 if a group with this name already exists (see groups_name_unique_idx)
-export async function insertGroup(name: string) {
-  const [group] = await getDb().insert(groups).values({ name }).returning({ id: groups.id, name: groups.name });
+// Fails with Postgres error 23505 if the user already has a group with this name (see groups_user_id_name_unique_idx)
+export async function insertGroup(userId: string, name: string) {
+  const [group] = await getDb().insert(groups).values({ userId, name }).returning({ id: groups.id, name: groups.name });
   return group;
 }
 
-// Fails with Postgres error 23505 if another group already has this name; null if there is no such group.
-// Changing only the case of the name is fine: the group does not clash with itself.
-export async function renameGroupRow(id: string, name: string) {
+// Fails with Postgres error 23505 if another group of the user already has this name;
+// null if the user has no such group. Changing only the case of the name is fine: the group does not clash with itself.
+export async function renameGroupRow(userId: string, id: string, name: string) {
   const [group] = await getDb()
     .update(groups)
     .set({ name })
-    .where(eq(groups.id, id))
+    .where(and(eq(groups.id, id), eq(groups.userId, userId)))
     .returning({ id: groups.id, name: groups.name });
   return group ?? null;
 }
 
 // Deletes the group and returns it with the ids of its people, so the browser can undo it;
-// null if there is no such group. The people stay in contacts.
-export async function deleteGroupWithSnapshot(id: string): Promise<GroupSnapshot | null> {
+// null if the user has no such group. The people stay in contacts.
+export async function deleteGroupWithSnapshot(userId: string, id: string): Promise<GroupSnapshot | null> {
   return getDb().transaction(async (tx) => {
     // The lock makes a person being added in another tab wait, so they can't be
     // dropped from the group without getting into the snapshot
-    const [group] = await tx.select().from(groups).where(eq(groups.id, id)).for("update");
+    // The owner is not part of the snapshot: undo takes it from the login again
+    const [group] = await tx
+      .select({ id: groups.id, name: groups.name, createdAt: groups.createdAt })
+      .from(groups)
+      .where(and(eq(groups.id, id), eq(groups.userId, userId)))
+      .for("update");
     if (!group) return null;
     const members = await tx
       .select({ contactId: contactGroups.contactId })
@@ -99,11 +126,12 @@ export async function deleteGroupWithSnapshot(id: string): Promise<GroupSnapshot
 
 // Undo of deleteGroupWithSnapshot: puts the group back with the same id and date, and the people
 // who are still in contacts. Fails with Postgres error 23505 if a group with this name appeared meanwhile.
-export async function restoreGroupFromSnapshot({ group, contactIds }: GroupSnapshot) {
+// The group is the user's, whatever the snapshot says; people of other users are left out.
+export async function restoreGroupFromSnapshot(userId: string, { group, contactIds }: GroupSnapshot) {
   await getDb().transaction(async (tx) => {
     const restored = await tx
       .insert(groups)
-      .values(group)
+      .values({ ...group, userId })
       .onConflictDoNothing({ target: groups.id })
       .returning({ id: groups.id });
     // Already restored: a second click on "undo" or another tab
@@ -114,7 +142,7 @@ export async function restoreGroupFromSnapshot({ group, contactIds }: GroupSnaps
       const existing = await tx
         .select({ id: contacts.id })
         .from(contacts)
-        .where(inArray(contacts.id, contactIds.slice(i, i + 1000)))
+        .where(and(inArray(contacts.id, contactIds.slice(i, i + 1000)), eq(contacts.userId, userId)))
         .for("share");
       if (existing.length > 0) {
         await tx
@@ -125,13 +153,14 @@ export async function restoreGroupFromSnapshot({ group, contactIds }: GroupSnaps
   });
 }
 
-// The groups of one contact in Russian alphabetical order
-export async function listContactGroups(contactId: string) {
+// The groups of one contact of the user in Russian alphabetical order
+export async function listContactGroups(userId: string, contactId: string) {
   return getDb()
     .select({ id: groups.id, name: groups.name })
     .from(contactGroups)
     .innerJoin(groups, eq(groups.id, contactGroups.groupId))
-    .where(eq(contactGroups.contactId, contactId))
+    .innerJoin(contacts, eq(contacts.id, contactGroups.contactId))
+    .where(and(eq(contactGroups.contactId, contactId), eq(groups.userId, userId), eq(contacts.userId, userId)))
     .orderBy(sql`${groups.name} collate ${RU_COLLATION}`, groups.id);
 }
 
@@ -154,7 +183,7 @@ export function groupFilterCondition(filter: GroupFilter): SQL | undefined {
 }
 
 // The groups of several contacts at once, each list in Russian alphabetical order
-export async function listGroupsOfContacts(contactIds: string[]): Promise<Map<string, GroupOption[]>> {
+export async function listGroupsOfContacts(userId: string, contactIds: string[]): Promise<Map<string, GroupOption[]>> {
   const byContact = new Map<string, GroupOption[]>();
   if (contactIds.length === 0) return byContact;
 
@@ -162,7 +191,7 @@ export async function listGroupsOfContacts(contactIds: string[]): Promise<Map<st
     .select({ contactId: contactGroups.contactId, id: groups.id, name: groups.name })
     .from(contactGroups)
     .innerJoin(groups, eq(groups.id, contactGroups.groupId))
-    .where(inArray(contactGroups.contactId, contactIds))
+    .where(and(inArray(contactGroups.contactId, contactIds), eq(groups.userId, userId)))
     .orderBy(sql`${groups.name} collate ${RU_COLLATION}`, groups.id);
   for (const row of rows) {
     byContact.set(row.contactId, [...(byContact.get(row.contactId) ?? []), { id: row.id, name: row.name }]);
@@ -170,24 +199,28 @@ export async function listGroupsOfContacts(contactIds: string[]): Promise<Map<st
   return byContact;
 }
 
-// The filter from the "groups" parameter of the address, with groups that no longer exist left out;
-// if none is left it is "Все", so an old link never breaks the page
-export async function resolveGroupFilter(value: string | null | undefined): Promise<GroupFilter> {
+// The filter from the "groups" parameter of the address, with groups that no longer exist
+// and groups of other users left out; if none is left it is "Все", so an old or a forwarded link never breaks the page
+export async function resolveGroupFilter(userId: string, value: string | null | undefined): Promise<GroupFilter> {
   const parsed = parseGroupFilter(value);
   if (parsed.mode !== "groups") return parsed;
 
-  const existing = await getDb().select({ id: groups.id }).from(groups).where(inArray(groups.id, parsed.ids));
+  const existing = await getDb()
+    .select({ id: groups.id })
+    .from(groups)
+    .where(and(inArray(groups.id, parsed.ids), eq(groups.userId, userId)));
   const known = new Set(existing.map((group) => group.id));
   const ids = parsed.ids.filter((id) => known.has(id));
   return ids.length === 0 ? ALL_GROUPS : { mode: "groups", ids };
 }
 
-// All groups in Russian alphabetical order, each with the number of people in it
-export async function listGroups(): Promise<GroupListItem[]> {
+// All groups of the user in Russian alphabetical order, each with the number of people in it
+export async function listGroups(userId: string): Promise<GroupListItem[]> {
   return getDb()
     .select({ id: groups.id, name: groups.name, peopleCount: count(contactGroups.contactId) })
     .from(groups)
     .leftJoin(contactGroups, eq(contactGroups.groupId, groups.id))
+    .where(eq(groups.userId, userId))
     .groupBy(groups.id)
     .orderBy(sql`${groups.name} collate ${RU_COLLATION}`, groups.id);
 }

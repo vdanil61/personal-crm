@@ -1,9 +1,17 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createGroup } from "@/app/actions";
 import { listGroups } from "@/lib/groups";
 
 import { addGroup } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
+
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
 
 const idle = { status: "idle" } as const;
 
@@ -13,14 +21,14 @@ function nameForm(name: string) {
   return formData;
 }
 
-const groupNames = async () => (await listGroups()).map((group) => group.name);
+const groupNames = async () => (await listGroups(user.id)).map((group) => group.name);
 
 describe("Создать группу", () => {
   it("Новая группа", async () => {
     const result = await createGroup(idle, nameForm("Работа"));
 
     expect(result).toMatchObject({ status: "success", name: "Работа" });
-    const created = (await listGroups()).find((group) => group.name === "Работа");
+    const created = (await listGroups(user.id)).find((group) => group.name === "Работа");
     expect(created).toMatchObject({ peopleCount: 0 });
     // On its place by the alphabet: between "Знакомые" and "Семья"
     expect(await groupNames()).toEqual(["Аналитики", "Друзья", "Знакомые", "Работа", "Семья", "Теннис"]);
@@ -50,7 +58,7 @@ describe("Создать группу", () => {
   });
 
   it("Ёлки и Елки", async () => {
-    await addGroup("Ёлки");
+    await addGroup(user.id, "Ёлки");
 
     const result = await createGroup(idle, nameForm("Елки"));
 

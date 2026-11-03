@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createContact, updateContact } from "@/app/actions";
 import { getDb } from "@/db";
@@ -7,6 +7,14 @@ import { CONTACT_FREQUENCIES, frequencyIntervals } from "@/lib/contact-frequency
 import { listOverdueContacts } from "@/lib/contacts";
 
 import { addContact, addNote } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
+
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
 
 const idle = { status: "idle" } as const;
 const DAY = 24 * 60 * 60 * 1000;
@@ -26,11 +34,11 @@ async function setFrequency(contact: { id: string; name: string }, frequency: st
 }
 
 // In the order of the block, not sorted by the test
-const overdueNames = async () => (await listOverdueContacts()).map((c) => c.name);
+const overdueNames = async () => (await listOverdueContacts(user.id)).map((c) => c.name);
 
 describe("Когда пора связаться", () => {
   it("Давно не общались", async () => {
-    const anna = await addContact("Анна Смирнова", { createdAt: daysAgo(400) });
+    const anna = await addContact(user.id, "Анна Смирнова", { createdAt: daysAgo(400) });
     await addNote(anna.id, daysAgo(40));
 
     await setFrequency(anna, "month");
@@ -40,18 +48,18 @@ describe("Когда пора связаться", () => {
 
   it("Недавно общались", async () => {
     // Added long ago, so only the recent note keeps the contact out of the block
-    const anna = await addContact("Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(40) });
+    const anna = await addContact(user.id, "Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(40) });
     await addNote(anna.id, daysAgo(2));
 
     expect(await overdueNames()).toEqual([]);
   });
 
   it("Ни заметок, ни отметок, контакт добавлен давно", async () => {
-    const anna = await addContact("Анна Смирнова", { createdAt: daysAgo(40) });
+    const anna = await addContact(user.id, "Анна Смирнова", { createdAt: daysAgo(40) });
 
     await setFrequency(anna, "week");
 
-    const [inBlock] = await listOverdueContacts();
+    const [inBlock] = await listOverdueContacts(user.id);
     // No time of the last contact: the block shows "ещё не связывались"
     expect(inBlock).toMatchObject({ name: "Анна Смирнова", frequency: "week", lastContactAt: null });
   });
@@ -65,7 +73,7 @@ describe("Когда пора связаться", () => {
   });
 
   it("Частота не задана", async () => {
-    const anna = await addContact("Анна Смирнова", { createdAt: daysAgo(400) });
+    const anna = await addContact(user.id, "Анна Смирнова", { createdAt: daysAgo(400) });
     await addNote(anna.id, daysAgo(365));
 
     expect(await overdueNames()).toEqual([]);
@@ -73,8 +81,8 @@ describe("Когда пора связаться", () => {
 
   it("Неделя — 7 дней", async () => {
     // A few hours either side of exactly 7 days
-    await addContact("Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(7 - 1 / 8) });
-    await addContact("Борис Медведев", { contactFrequency: "week", createdAt: daysAgo(7 + 1 / 8) });
+    await addContact(user.id, "Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(7 - 1 / 8) });
+    await addContact(user.id, "Борис Медведев", { contactFrequency: "week", createdAt: daysAgo(7 + 1 / 8) });
 
     expect(await overdueNames()).toEqual(["Борис Медведев"]);
   });
@@ -99,13 +107,13 @@ describe("Когда пора связаться", () => {
 
   it("Последнее общение — позднее из заметки и «Связался»", async () => {
     // Either one alone, if recent, keeps the contact out of the block
-    const markedLater = await addContact("Анна Смирнова", {
+    const markedLater = await addContact(user.id, "Анна Смирнова", {
       contactFrequency: "week",
       createdAt: daysAgo(400),
       lastContactedAt: daysAgo(2),
     });
     await addNote(markedLater.id, daysAgo(40));
-    const notedLater = await addContact("Борис Медведев", {
+    const notedLater = await addContact(user.id, "Борис Медведев", {
       contactFrequency: "week",
       createdAt: daysAgo(400),
       lastContactedAt: daysAgo(40),
@@ -116,20 +124,20 @@ describe("Когда пора связаться", () => {
     // Both long ago: the block shows the later of the two
     const earlier = daysAgo(30);
     const later = daysAgo(20);
-    const vera = await addContact("Вера Николаева", {
+    const vera = await addContact(user.id, "Вера Николаева", {
       contactFrequency: "week",
       createdAt: daysAgo(400),
       lastContactedAt: earlier,
     });
     await addNote(vera.id, later);
-    const gleb = await addContact("Глеб Фёдоров", {
+    const gleb = await addContact(user.id, "Глеб Фёдоров", {
       contactFrequency: "week",
       createdAt: daysAgo(400),
       lastContactedAt: later,
     });
     await addNote(gleb.id, earlier);
 
-    expect(await listOverdueContacts()).toEqual([
+    expect(await listOverdueContacts(user.id)).toEqual([
       expect.objectContaining({ name: "Вера Николаева", lastContactAt: later }),
       expect.objectContaining({ name: "Глеб Фёдоров", lastContactAt: later }),
     ]);
@@ -137,14 +145,14 @@ describe("Когда пора связаться", () => {
 
   it("Смена частоты не сбрасывает отсчёт", async () => {
     const notedAt = daysAgo(20);
-    const anna = await addContact("Анна Смирнова", { contactFrequency: "year", createdAt: daysAgo(400) });
+    const anna = await addContact(user.id, "Анна Смирнова", { contactFrequency: "year", createdAt: daysAgo(400) });
     await addNote(anna.id, notedAt);
     expect(await overdueNames()).toEqual([]);
 
     await setFrequency(anna, "week");
 
     // Counted from the note, not from the moment the frequency changed
-    expect(await listOverdueContacts()).toEqual([
+    expect(await listOverdueContacts(user.id)).toEqual([
       expect.objectContaining({ name: "Анна Смирнова", lastContactAt: notedAt }),
     ]);
   });
@@ -154,9 +162,9 @@ describe("Порядок в блоке", () => {
   // Each pair is added so that the alphabet alone would give the wrong order
 
   it("Разная давность при одной частоте", async () => {
-    const recent = await addContact("Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(400) });
+    const recent = await addContact(user.id, "Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(400) });
     await addNote(recent.id, daysAgo(14));
-    const longAgo = await addContact("Борис Медведев", { contactFrequency: "week", createdAt: daysAgo(400) });
+    const longAgo = await addContact(user.id, "Борис Медведев", { contactFrequency: "week", createdAt: daysAgo(400) });
     await addNote(longAgo.id, daysAgo(60));
 
     expect(await overdueNames()).toEqual(["Борис Медведев", "Анна Смирнова"]);
@@ -164,10 +172,10 @@ describe("Порядок в блоке", () => {
 
   it("Разная частота", async () => {
     // Due 3 days ago
-    const weekly = await addContact("Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(400) });
+    const weekly = await addContact(user.id, "Анна Смирнова", { contactFrequency: "week", createdAt: daysAgo(400) });
     await addNote(weekly.id, daysAgo(10));
     // Due about 2 months ago
-    const monthly = await addContact("Борис Медведев", { contactFrequency: "month", createdAt: daysAgo(400) });
+    const monthly = await addContact(user.id, "Борис Медведев", { contactFrequency: "month", createdAt: daysAgo(400) });
     await addNote(monthly.id, daysAgo(90));
 
     expect(await overdueNames()).toEqual(["Борис Медведев", "Анна Смирнова"]);
@@ -175,8 +183,8 @@ describe("Порядок в блоке", () => {
 
   it("Одинаковый срок — по алфавиту", async () => {
     const addedAt = daysAgo(40);
-    await addContact("Борис Медведев", { contactFrequency: "week", createdAt: addedAt });
-    await addContact("Анна Смирнова", { contactFrequency: "week", createdAt: addedAt });
+    await addContact(user.id, "Борис Медведев", { contactFrequency: "week", createdAt: addedAt });
+    await addContact(user.id, "Анна Смирнова", { contactFrequency: "week", createdAt: addedAt });
 
     expect(await overdueNames()).toEqual(["Анна Смирнова", "Борис Медведев"]);
   });

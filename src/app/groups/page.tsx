@@ -6,6 +6,7 @@ import { CreateGroupDialog } from "@/components/groups/create-group-dialog";
 import { DeleteGroupButton } from "@/components/groups/delete-group-button";
 import { RenameGroupDialog } from "@/components/groups/rename-group-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requireUser } from "@/lib/auth/session";
 import { pluralize } from "@/lib/format";
 import { listGroups } from "@/lib/groups";
 
@@ -27,7 +28,8 @@ export default function GroupsPage() {
 async function GroupList() {
   // Read at request time, never from a build-time prerender: the build has no database
   await connection();
-  const groups = await listGroups();
+  const user = await requireUser();
+  const groups = await listGroups(user.id);
 
   if (groups.length === 0) {
     return (

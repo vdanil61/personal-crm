@@ -9,6 +9,7 @@ import { EditContactDialog } from "@/components/contacts/edit-contact-dialog";
 import { ContactGroups } from "@/components/groups/contact-groups";
 import { NoteForm } from "@/components/contacts/note-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requireUser } from "@/lib/auth/session";
 import { frequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listNotes } from "@/lib/contacts";
 import { formatDateTime, pluralize } from "@/lib/format";
@@ -31,11 +32,12 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
   const { id } = await params;
   if (!idSchema.safeParse(id).success) notFound();
 
+  const user = await requireUser();
   const [contact, notes, allGroups, contactGroups] = await Promise.all([
-    getContact(id),
-    listNotes(id),
-    listGroups(),
-    listContactGroups(id),
+    getContact(user.id, id),
+    listNotes(user.id, id),
+    listGroups(user.id),
+    listContactGroups(user.id, id),
   ]);
   if (!contact) notFound();
 

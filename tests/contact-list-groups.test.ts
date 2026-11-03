@@ -1,30 +1,38 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { setContactGroup } from "@/app/actions";
 import { listContactsPage } from "@/lib/contacts";
 import { ALL_GROUPS, type GroupFilter } from "@/lib/group-filter";
 
 import { addContact, findGroupId, putInGroup } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
+
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
 
 const selected = async (...groupNames: string[]): Promise<GroupFilter> => ({
   mode: "groups",
-  ids: await Promise.all(groupNames.map(findGroupId)),
+  ids: await Promise.all(groupNames.map((name) => findGroupId(user.id, name))),
 });
 
 const list = (filter: GroupFilter = ALL_GROUPS, query = "", page = 1, size: 10 | 20 | 50 = 50) =>
-  listContactsPage(query, page, size, filter);
+  listContactsPage(user.id, query, page, size, filter);
 const names = (result: Awaited<ReturnType<typeof list>>) => result.items.map((item) => item.name);
 
 // Анна: Друзья и Теннис; Борис: только Друзья; Вера: только Теннис; Глеб: без групп
 async function fourPeople() {
-  const anna = await addContact("Анна Смирнова");
-  const boris = await addContact("Борис Медведев");
-  const vera = await addContact("Вера Николаева");
-  const gleb = await addContact("Глеб Фёдоров");
-  await putInGroup(anna.id, "Друзья");
-  await putInGroup(anna.id, "Теннис");
-  await putInGroup(boris.id, "Друзья");
-  await putInGroup(vera.id, "Теннис");
+  const anna = await addContact(user.id, "Анна Смирнова");
+  const boris = await addContact(user.id, "Борис Медведев");
+  const vera = await addContact(user.id, "Вера Николаева");
+  const gleb = await addContact(user.id, "Глеб Фёдоров");
+  await putInGroup(user.id, anna.id, "Друзья");
+  await putInGroup(user.id, anna.id, "Теннис");
+  await putInGroup(user.id, boris.id, "Друзья");
+  await putInGroup(user.id, vera.id, "Теннис");
   return { anna, boris, vera, gleb };
 }
 
@@ -69,8 +77,8 @@ describe("Фильтр по группам в списке", () => {
 
   it("Фильтр и поиск", async () => {
     const { anna } = await fourPeople();
-    const otherAnna = await addContact("Анна Орлова");
-    await putInGroup(otherAnna.id, "Семья");
+    const otherAnna = await addContact(user.id, "Анна Орлова");
+    await putInGroup(user.id, otherAnna.id, "Семья");
     expect(anna.name).toBe("Анна Смирнова");
 
     const result = await list(await selected("Друзья"), "Анна");
@@ -81,7 +89,7 @@ describe("Фильтр по группам в списке", () => {
 
   it("Счётчик при фильтре", async () => {
     await fourPeople();
-    for (const name of ["Дмитрий", "Егор", "Жанна", "Зоя"]) await addContact(name);
+    for (const name of ["Дмитрий", "Егор", "Жанна", "Зоя"]) await addContact(user.id, name);
 
     const result = await list(await selected("Теннис"));
 
@@ -103,8 +111,8 @@ describe("Фильтр по группам в списке", () => {
 
   it("Страницы считаются по отфильтрованным людям", async () => {
     for (let i = 1; i <= 12; i += 1) {
-      const contact = await addContact(`Человек ${String(i).padStart(2, "0")}`);
-      if (i <= 11) await putInGroup(contact.id, "Семья");
+      const contact = await addContact(user.id, `Человек ${String(i).padStart(2, "0")}`);
+      if (i <= 11) await putInGroup(user.id, contact.id, "Семья");
     }
 
     const second = await list(await selected("Семья"), "", 2, 10);

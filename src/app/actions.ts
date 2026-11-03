@@ -1,10 +1,12 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { getDb } from "@/db";
 import { contactGroups, contacts, notes } from "@/db/schema";
+import { requireUser } from "@/lib/auth/session";
+import { describeError } from "@/lib/errors";
 import type {
   ContactFormState,
   ContactFormValues,
@@ -49,18 +51,6 @@ const CONTACT_GONE = "Этот контакт больше не существу
 const GROUP_EXISTS = "Такая группа уже есть";
 const GROUP_GONE = "Эта группа больше не существует.";
 
-// Database errors carry the failed query with its values (names, phones, note text),
-// and the log is less protected than the database. So only the class and code of each
-// error in the cause chain are logged, e.g. "DrizzleQueryError > DatabaseError 42P01".
-function describeError(err: unknown): string {
-  const parts: string[] = [];
-  for (let current = err; current instanceof Error && parts.length < 5; current = current.cause) {
-    const code = "code" in current && typeof current.code === "string" ? ` ${current.code}` : "";
-    parts.push(`${current.constructor.name}${code}`);
-  }
-  return parts.join(" > ") || "unknown error";
-}
-
 // Postgres reports a broken unique index with code 23505; the driver may wrap that error
 function isUniqueViolation(err: unknown): boolean {
   for (let current = err; current instanceof Error; current = current.cause) {
@@ -102,13 +92,18 @@ function validateContact(formData: FormData) {
 }
 
 export async function createContact(_prev: ContactFormState, formData: FormData): Promise<ContactFormState> {
+  const user = await requireUser();
   const { values, data, groupIds, error } = validateContact(formData);
   if (error) return error;
 
   try {
     const created = await getDb().transaction(async (tx) => {
-      const [contact] = await tx.insert(contacts).values(data).returning({ id: contacts.id });
-      await replaceContactGroups(tx, contact.id, groupIds);
+      // The owner is whoever is signed in, never what the browser sends
+      const [contact] = await tx
+        .insert(contacts)
+        .values({ ...data, userId: user.id })
+        .returning({ id: contacts.id });
+      await replaceContactGroups(tx, user.id, contact.id, groupIds);
       return contact;
     });
     revalidatePath("/", "layout");
@@ -124,6 +119,7 @@ export async function updateContact(
   _prev: ContactFormState,
   formData: FormData,
 ): Promise<ContactFormState> {
+  const user = await requireUser();
   if (!idSchema.safeParse(contactId).success) {
     throw new Error("Invalid contact id");
   }
@@ -136,10 +132,10 @@ export async function updateContact(
       const updated = await tx
         .update(contacts)
         .set({ ...data, updatedAt: sql`now()` })
-        .where(eq(contacts.id, contactId))
+        .where(and(eq(contacts.id, contactId), eq(contacts.userId, user.id)))
         .returning({ id: contacts.id });
       if (updated.length === 0) return false;
-      await replaceContactGroups(tx, contactId, groupIds);
+      await replaceContactGroups(tx, user.id, contactId, groupIds);
       return true;
     });
     if (!found) {
@@ -160,6 +156,7 @@ export async function updateContact(
 }
 
 export async function createGroup(_prev: GroupFormState, formData: FormData): Promise<GroupFormState> {
+  const user = await requireUser();
   const rawName = formData.get("name");
   const name = typeof rawName === "string" ? rawName : "";
   const parsed = groupNameSchema.safeParse(name);
@@ -168,7 +165,7 @@ export async function createGroup(_prev: GroupFormState, formData: FormData): Pr
   }
 
   try {
-    const created = await insertGroup(parsed.data);
+    const created = await insertGroup(user.id, parsed.data);
     revalidatePath("/", "layout");
     return { status: "success", groupId: created.id, name: created.name, savedAt: Date.now() };
   } catch (err) {
@@ -181,6 +178,7 @@ export async function createGroup(_prev: GroupFormState, formData: FormData): Pr
 }
 
 export async function renameGroup(groupId: string, _prev: GroupFormState, formData: FormData): Promise<GroupFormState> {
+  const user = await requireUser();
   if (!idSchema.safeParse(groupId).success) {
     throw new Error("Invalid group id");
   }
@@ -193,7 +191,7 @@ export async function renameGroup(groupId: string, _prev: GroupFormState, formDa
   }
 
   try {
-    const renamed = await renameGroupRow(groupId, parsed.data);
+    const renamed = await renameGroupRow(user.id, groupId, parsed.data);
     // Also when the group was already gone, so the page stops showing it
     revalidatePath("/", "layout");
     if (!renamed) {
@@ -215,6 +213,7 @@ export async function setContactGroup(
   groupId: string,
   member: boolean,
 ): Promise<SetContactGroupResult> {
+  const user = await requireUser();
   if (!idSchema.safeParse(contactId).success) {
     throw new Error("Invalid contact id");
   }
@@ -223,7 +222,7 @@ export async function setContactGroup(
   }
 
   try {
-    const outcome = await setContactGroupMembership(contactId, groupId, member);
+    const outcome = await setContactGroupMembership(user.id, contactId, groupId, member);
     // Also when something was already gone, so the page stops showing it
     revalidatePath("/", "layout");
     if (outcome === "no-contact") return { status: "error", message: CONTACT_GONE };
@@ -237,12 +236,13 @@ export async function setContactGroup(
 
 // Deletes the group (its people stay in contacts) and returns it with their ids, so the browser can undo it
 export async function deleteGroup(groupId: string): Promise<DeleteGroupResult> {
+  const user = await requireUser();
   if (!idSchema.safeParse(groupId).success) {
     throw new Error("Invalid group id");
   }
 
   try {
-    const snapshot = await deleteGroupWithSnapshot(groupId);
+    const snapshot = await deleteGroupWithSnapshot(user.id, groupId);
     // Also when the group was already gone, so the page stops showing it
     revalidatePath("/", "layout");
     if (!snapshot) {
@@ -257,13 +257,14 @@ export async function deleteGroup(groupId: string): Promise<DeleteGroupResult> {
 
 // Undo of deleteGroup: puts the group back with the same id and the people who are still in contacts
 export async function restoreGroup(snapshot: GroupSnapshot): Promise<RestoreGroupResult> {
+  const user = await requireUser();
   const parsed = groupSnapshotSchema.safeParse(snapshot);
   if (!parsed.success) {
     throw new Error("Invalid group snapshot");
   }
 
   try {
-    await restoreGroupFromSnapshot(parsed.data);
+    await restoreGroupFromSnapshot(user.id, parsed.data);
     revalidatePath("/", "layout");
     return { status: "success" };
   } catch (err) {
@@ -276,6 +277,7 @@ export async function restoreGroup(snapshot: GroupSnapshot): Promise<RestoreGrou
 }
 
 export async function addNote(contactId: string, _prev: NoteFormState, formData: FormData): Promise<NoteFormState> {
+  const user = await requireUser();
   if (!idSchema.safeParse(contactId).success) {
     throw new Error("Invalid contact id");
   }
@@ -292,7 +294,7 @@ export async function addNote(contactId: string, _prev: NoteFormState, formData:
       const touched = await tx
         .update(contacts)
         .set({ updatedAt: sql`now()` })
-        .where(eq(contacts.id, contactId))
+        .where(and(eq(contacts.id, contactId), eq(contacts.userId, user.id)))
         .returning({ id: contacts.id });
       if (touched.length === 0) return false;
       await tx.insert(notes).values({ contactId, body: parsed.data.body });
@@ -312,6 +314,7 @@ export async function addNote(contactId: string, _prev: NoteFormState, formData:
 // "Связался" in the keep-in-touch block: the contact was in touch now, without a note.
 // The time comes from the database, as for notes, so the two can be compared.
 export async function markContacted(contactId: string): Promise<MarkContactedResult> {
+  const user = await requireUser();
   if (!idSchema.safeParse(contactId).success) {
     throw new Error("Invalid contact id");
   }
@@ -320,7 +323,7 @@ export async function markContacted(contactId: string): Promise<MarkContactedRes
     const marked = await getDb()
       .update(contacts)
       .set({ lastContactedAt: sql`now()`, updatedAt: sql`now()` })
-      .where(eq(contacts.id, contactId))
+      .where(and(eq(contacts.id, contactId), eq(contacts.userId, user.id)))
       .returning({ id: contacts.id });
     // Also when the contact was already gone, so the page stops showing it
     revalidatePath("/", "layout");
@@ -336,6 +339,7 @@ export async function markContacted(contactId: string): Promise<MarkContactedRes
 
 // Deletes the contact with its notes and returns them, so the browser can undo it
 export async function deleteContact(contactId: string): Promise<DeleteContactResult> {
+  const user = await requireUser();
   if (!idSchema.safeParse(contactId).success) {
     throw new Error("Invalid contact id");
   }
@@ -344,7 +348,23 @@ export async function deleteContact(contactId: string): Promise<DeleteContactRes
     const snapshot = await getDb().transaction(async (tx) => {
       // The lock makes a note being added in another tab wait, so it can't be
       // deleted without getting into the snapshot
-      const [contact] = await tx.select().from(contacts).where(eq(contacts.id, contactId)).for("update");
+      // The owner is not part of the snapshot: undo takes it from the login again
+      const [contact] = await tx
+        .select({
+          id: contacts.id,
+          name: contacts.name,
+          about: contacts.about,
+          howWeMet: contacts.howWeMet,
+          phone: contacts.phone,
+          email: contacts.email,
+          createdAt: contacts.createdAt,
+          updatedAt: contacts.updatedAt,
+          contactFrequency: contacts.contactFrequency,
+          lastContactedAt: contacts.lastContactedAt,
+        })
+        .from(contacts)
+        .where(and(eq(contacts.id, contactId), eq(contacts.userId, user.id)))
+        .for("update");
       if (!contact) return null;
       const contactNotes = await tx
         .select({ id: notes.id, body: notes.body, createdAt: notes.createdAt })
@@ -372,6 +392,7 @@ export async function deleteContact(contactId: string): Promise<DeleteContactRes
 
 // Undo of deleteContact: puts the contact and its notes back with the same ids and dates
 export async function restoreContact(snapshot: ContactSnapshot): Promise<RestoreContactResult> {
+  const user = await requireUser();
   const parsed = contactSnapshotSchema.safeParse(snapshot);
   if (!parsed.success) {
     throw new Error("Invalid contact snapshot");
@@ -382,7 +403,7 @@ export async function restoreContact(snapshot: ContactSnapshot): Promise<Restore
     await getDb().transaction(async (tx) => {
       const restored = await tx
         .insert(contacts)
-        .values(contact)
+        .values({ ...contact, userId: user.id })
         .onConflictDoNothing({ target: contacts.id })
         .returning({ id: contacts.id });
       // Already restored: a second click on "undo" or another tab
@@ -392,7 +413,7 @@ export async function restoreContact(snapshot: ContactSnapshot): Promise<Restore
         await tx.insert(notes).values(chunk);
       }
       // Only the groups that still exist; one deleted meanwhile is skipped without an error
-      await replaceContactGroups(tx, contact.id, groupIds);
+      await replaceContactGroups(tx, user.id, contact.id, groupIds);
     });
     revalidatePath("/", "layout");
     return { status: "success" };

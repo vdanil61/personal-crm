@@ -36,6 +36,12 @@ export default defineConfig({
     // Something else on the port must not be mistaken for the app under test
     reuseExistingServer: false,
     timeout: 180_000,
-    env: { DATABASE_URL: getTestDatabaseUrl("e2e"), HOSTNAME: "127.0.0.1", PORT: String(PORT) },
+    env: {
+      DATABASE_URL: getTestDatabaseUrl("e2e"),
+      // Login links in emails point at the app under test
+      BETTER_AUTH_URL: BASE_URL,
+      HOSTNAME: "127.0.0.1",
+      PORT: String(PORT),
+    },
   },
 });

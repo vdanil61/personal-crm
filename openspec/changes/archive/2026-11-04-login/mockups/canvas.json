@@ -1,0 +1,132 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-03T21:00:00Z"
+  },
+  "title": "Вход — макеты",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 760,
+      "title": "Вход — компьютер",
+      "is_interactive": true
+    },
+    "Expired.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 1280,
+      "h": 640,
+      "title": "Ссылка устарела — компьютер",
+      "is_interactive": true
+    },
+    "Home.dc.html": {
+      "x": 2720,
+      "y": 0,
+      "w": 1280,
+      "h": 760,
+      "title": "Главная с шапкой — компьютер"
+    },
+    "Empty.dc.html": {
+      "x": 4080,
+      "y": 0,
+      "w": 1280,
+      "h": 760,
+      "title": "Пустой список — компьютер"
+    },
+    "Email.dc.html": {
+      "x": 5440,
+      "y": 0,
+      "w": 720,
+      "h": 640,
+      "title": "Письмо — компьютер"
+    },
+    "Phone-Login.dc.html": {
+      "x": 0,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Вход — телефон",
+      "is_interactive": true
+    },
+    "Phone-Expired.dc.html": {
+      "x": 470,
+      "y": 1500,
+      "w": 390,
+      "h": 700,
+      "title": "Ссылка устарела — телефон",
+      "is_interactive": true
+    },
+    "Phone-Home.dc.html": {
+      "x": 940,
+      "y": 1500,
+      "w": 390,
+      "h": 720,
+      "title": "Главная с шапкой — телефон"
+    },
+    "Phone-Home-LongEmail.dc.html": {
+      "x": 1410,
+      "y": 1500,
+      "w": 390,
+      "h": 720,
+      "title": "Шапка с длинной почтой — телефон"
+    },
+    "Phone-Empty.dc.html": {
+      "x": 1880,
+      "y": 1500,
+      "w": 390,
+      "h": 844,
+      "title": "Пустой список — телефон"
+    },
+    "Phone-Email.dc.html": {
+      "x": 2350,
+      "y": 1500,
+      "w": 390,
+      "h": 700,
+      "title": "Письмо — телефон"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Expired.dc.html",
+    "Home.dc.html",
+    "Empty.dc.html",
+    "Email.dc.html",
+    "Phone-Login.dc.html",
+    "Phone-Expired.dc.html",
+    "Phone-Home.dc.html",
+    "Phone-Home-LongEmail.dc.html",
+    "Phone-Empty.dc.html",
+    "Phone-Email.dc.html"
+  ],
+  "notes": {
+    "rowDesktop": {
+      "x": 0,
+      "y": -300,
+      "text": "Компьютер",
+      "kind": "title1",
+      "maxW": 6160
+    },
+    "rowPhone": {
+      "x": 0,
+      "y": 1200,
+      "text": "Телефон",
+      "kind": "title1",
+      "maxW": 2740
+    },
+    "howto": {
+      "x": 6240,
+      "y": 0,
+      "w": 360,
+      "fill": "blue",
+      "text": "Как смотреть: на экранах входа нажмите Play и введите почту — «Получить ссылку» показывает сообщение или ошибку «Проверьте адрес почты». Кнопка Tweaks открывает остальные состояния: «Слишком часто», «Не удалось отправить». В письме на сервере отправитель noreply@mail.percrm.ru, на компьютере владельца — v.danil903@gmail.com."
+    }
+  },
+  "designSystems": []
+}

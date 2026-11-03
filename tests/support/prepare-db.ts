@@ -1,14 +1,17 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
 import { Pool } from "pg";
 
-import { type TestSuite, getMaintenanceDatabaseUrl, getTestDatabaseName, getTestDatabaseUrl } from "./test-db-url";
+import { applyMigrations } from "../../src/db/apply-migrations";
+import { getMaintenanceDatabaseUrl, getTestDatabaseName, getTestDatabaseUrl } from "./test-db-url";
+
+// A made-up owner for the data every migrated database already has (the five default groups)
+const OWNER_EMAILS = { test: "owner@vitest.example.com", e2e: "owner@e2e.example.com" };
 
 // Creates the database of a test suite if it is missing and applies the migrations to it.
 // Used before Vitest (tests/support/global-setup.ts) and before Playwright (e2e/support/prepare-db.ts).
-export async function prepareTestDatabase(suite: TestSuite) {
+export async function prepareTestDatabase(suite: "test" | "e2e") {
   await createDatabaseIfMissing(getTestDatabaseName(suite));
-  await applyMigrations(getTestDatabaseUrl(suite));
+  // Relative to the project root, where both test runners start, as in scripts/migrate.ts
+  await applyMigrations(getTestDatabaseUrl(suite), OWNER_EMAILS[suite]);
 }
 
 async function createDatabaseIfMissing(name: string) {
@@ -19,16 +22,6 @@ async function createDatabaseIfMissing(name: string) {
       // An identifier cannot be passed as a query parameter, so it is quoted by hand
       await pool.query(`create database "${name.replaceAll('"', '""')}"`);
     }
-  } finally {
-    await pool.end();
-  }
-}
-
-async function applyMigrations(url: string) {
-  const pool = new Pool({ connectionString: url });
-  try {
-    // Relative to the project root, where both test runners start, as in scripts/migrate.ts
-    await migrate(drizzle(pool), { migrationsFolder: "drizzle" });
   } finally {
     await pool.end();
   }

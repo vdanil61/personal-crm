@@ -1,22 +1,30 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { addNote, deleteContact, markContacted, restoreContact } from "@/app/actions";
 import { getContact, listNotes, listOverdueContacts } from "@/lib/contacts";
 import type { ContactSnapshot } from "@/lib/validation";
 
 import { addContact, addNote as addOldNote } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
+
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY);
 
 // The last contact was a note 200 days ago: overdue for any frequency but a year
 async function overdueWithNote(name: string, frequency: "week" | "month" | "quarter" = "month") {
-  const contact = await addContact(name, { contactFrequency: frequency, createdAt: daysAgo(400) });
+  const contact = await addContact(user.id, name, { contactFrequency: frequency, createdAt: daysAgo(400) });
   await addOldNote(contact.id, daysAgo(200));
   return contact;
 }
 
-const overdueNames = async () => (await listOverdueContacts()).map((c) => c.name);
+const overdueNames = async () => (await listOverdueContacts(user.id)).map((c) => c.name);
 
 async function deleteAndKeepSnapshot(contactId: string): Promise<ContactSnapshot> {
   const result = await deleteContact(contactId);
@@ -54,7 +62,7 @@ describe("Отметка «Связался» в блоке", () => {
 
     await markContacted(anna.id);
 
-    expect(await listNotes(anna.id)).toHaveLength(1);
+    expect(await listNotes(user.id, anna.id)).toHaveLength(1);
   });
 
   it("Отметка сохраняется", async () => {
@@ -64,7 +72,7 @@ describe("Отметка «Связался» в блоке", () => {
     await markContacted(anna.id);
 
     // Kept in the database, so any browser gets the same block
-    const markedAt = (await getContact(anna.id))?.lastContactedAt;
+    const markedAt = (await getContact(user.id, anna.id))?.lastContactedAt;
     expect(markedAt?.getTime()).toBeGreaterThanOrEqual(before - 1000);
     expect(await overdueNames()).toEqual([]);
   });
@@ -78,7 +86,7 @@ describe("Отмена удаления возвращает частоту и �
 
     expect(await restoreContact(snapshot)).toEqual({ status: "success" });
 
-    expect((await getContact(anna.id))?.contactFrequency).toBe("quarter");
+    expect((await getContact(user.id, anna.id))?.contactFrequency).toBe("quarter");
     // It was in the block, so it is there again
     expect(await overdueNames()).toEqual(["Анна Смирнова"]);
   });
@@ -86,12 +94,12 @@ describe("Отмена удаления возвращает частоту и �
   it("Отмеченный контакт после отмены удаления", async () => {
     const anna = await overdueWithNote("Анна Смирнова");
     await markContacted(anna.id);
-    const markedAt = (await getContact(anna.id))?.lastContactedAt;
+    const markedAt = (await getContact(user.id, anna.id))?.lastContactedAt;
     const snapshot = await deleteAndKeepSnapshot(anna.id);
 
     expect(await restoreContact(snapshot)).toEqual({ status: "success" });
 
-    expect((await getContact(anna.id))?.lastContactedAt).toEqual(markedAt);
+    expect((await getContact(user.id, anna.id))?.lastContactedAt).toEqual(markedAt);
     expect(await overdueNames()).toEqual([]);
   });
 });

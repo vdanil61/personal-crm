@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { getDb } from "@/db";
 import { groups } from "@/db/schema";
@@ -8,6 +8,14 @@ import { resolveGroupFilter } from "@/lib/groups";
 import { contactListHref } from "@/lib/search";
 
 import { findGroupId } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
+
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
 
 const selected = (...ids: string[]): GroupFilter => ({ mode: "groups", ids });
 
@@ -19,11 +27,11 @@ function parts(href: string) {
 
 describe("Фильтр по группам хранится в адресе", () => {
   it("Обновил страницу", async () => {
-    const chosen = selected(await findGroupId("Друзья"), await findGroupId("Теннис"));
+    const chosen = selected(await findGroupId(user.id, "Друзья"), await findGroupId(user.id, "Теннис"));
 
     const href = contactListHref({ filter: chosen });
     // What the server reads from the address after a reload
-    const afterReload = await resolveGroupFilter(parts(href).params.groups);
+    const afterReload = await resolveGroupFilter(user.id, parts(href).params.groups);
 
     expect(afterReload).toEqual(chosen);
   });
@@ -31,12 +39,12 @@ describe("Фильтр по группам хранится в адресе", ()
   it("«Без группы» и «Все» в адресе", async () => {
     expect(parts(contactListHref({ filter: { mode: "none" } })).params).toEqual({ groups: "none" });
     expect(parts(contactListHref({ filter: ALL_GROUPS })).params).toEqual({});
-    expect(await resolveGroupFilter("none")).toEqual({ mode: "none" });
-    expect(await resolveGroupFilter(null)).toEqual(ALL_GROUPS);
+    expect(await resolveGroupFilter(user.id, "none")).toEqual({ mode: "none" });
+    expect(await resolveGroupFilter(user.id, null)).toEqual(ALL_GROUPS);
   });
 
   it("Смена фильтра открывает первую страницу", async () => {
-    const friendsId = await findGroupId("Друзья");
+    const friendsId = await findGroupId(user.id, "Друзья");
 
     // The list is on page 3 with a search and 20 per page; a new filter keeps the search and the size only
     const href = filterHref({ query: "Анна", size: 20 }, selected(friendsId));
@@ -45,16 +53,16 @@ describe("Фильтр по группам хранится в адресе", ()
   });
 
   it("Ссылка на удалённую группу", async () => {
-    const tennisId = await findGroupId("Теннис");
-    const familyId = await findGroupId("Семья");
+    const tennisId = await findGroupId(user.id, "Теннис");
+    const familyId = await findGroupId(user.id, "Семья");
     await getDb().delete(groups).where(eq(groups.id, tennisId));
 
     // Only the deleted group: "Все", no error
-    expect(await resolveGroupFilter(tennisId)).toEqual(ALL_GROUPS);
+    expect(await resolveGroupFilter(user.id, tennisId)).toEqual(ALL_GROUPS);
     // One of two is gone: the other stays
-    expect(await resolveGroupFilter(`${tennisId},${familyId}`)).toEqual(selected(familyId));
+    expect(await resolveGroupFilter(user.id, `${tennisId},${familyId}`)).toEqual(selected(familyId));
     // Not an id at all
-    expect(await resolveGroupFilter("абракадабра,123")).toEqual(ALL_GROUPS);
+    expect(await resolveGroupFilter(user.id, "абракадабра,123")).toEqual(ALL_GROUPS);
   });
 
   it("Добавил контакт, пока выбран фильтр", () => {
@@ -65,7 +73,7 @@ describe("Фильтр по группам хранится в адресе", ()
   });
 
   it("Нажал метку в карточке", async () => {
-    const tennisId = await findGroupId("Теннис");
+    const tennisId = await findGroupId(user.id, "Теннис");
 
     const href = contactListHref({ filter: selected(tennisId) });
 
@@ -74,8 +82,8 @@ describe("Фильтр по группам хранится в адресе", ()
   });
 
   it("Нажал метку в строке списка", async () => {
-    const friendsId = await findGroupId("Друзья");
-    const tennisId = await findGroupId("Теннис");
+    const friendsId = await findGroupId(user.id, "Друзья");
+    const tennisId = await findGroupId(user.id, "Теннис");
 
     const href = labelHref({ query: "Анна", size: 20 }, selected(friendsId), tennisId);
 

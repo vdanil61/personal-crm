@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useOptimistic, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useMemo, useOptimistic, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Trash2Icon, UsersIcon } from "lucide-react";
@@ -60,6 +60,7 @@ export function ContactBrowser({
   page,
   pageCount,
   pageSize,
+  addContactButton,
 }: {
   contacts: ContactListItem[];
   total: number;
@@ -68,6 +69,8 @@ export function ContactBrowser({
   page: number;
   pageCount: number;
   pageSize: PageSize;
+  // The button of the empty list: it opens the same form as the button on top of the page, which is absent then
+  addContactButton: ReactNode;
 }) {
   const searchParams = useSearchParams();
   const isSearching = query.trim() !== "";
@@ -139,7 +142,9 @@ export function ContactBrowser({
 
   if (total === 0) {
     return (
-      <EmptyState title="Здесь пока никого нет" hint="Добавьте первого человека кнопкой «Добавить контакт» вверху." />
+      <EmptyState title="Здесь пока никого нет" hint="Добавьте первого человека, о ком не хочется забыть.">
+        {addContactButton}
+      </EmptyState>
     );
   }
 
@@ -272,7 +277,7 @@ function ContactRows({
   );
 }
 
-function EmptyState({ title, hint }: { title: string; hint: string }) {
+function EmptyState({ title, hint, children }: { title: string; hint: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center gap-2 bg-card px-6 py-12 text-center">
       <div className="mb-2 grid size-12 place-items-center bg-secondary text-primary-strong">
@@ -280,6 +285,7 @@ function EmptyState({ title, hint }: { title: string; hint: string }) {
       </div>
       <p className="text-title">{title}</p>
       <p className="max-w-sm text-sm text-muted-foreground">{hint}</p>
+      {children && <div className="mt-4 w-full sm:w-auto">{children}</div>}
     </div>
   );
 }

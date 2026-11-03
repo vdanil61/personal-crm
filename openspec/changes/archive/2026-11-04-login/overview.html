@@ -1,0 +1,826 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вход — обзор фичи</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Values copied from src/app/globals.css (:root and @theme) */
+:root {
+  --background: #eceef5;
+  --foreground: #16182b;
+  --card: #fff;
+  --primary: #4b4fe0;
+  --primary-strong: #3c3fc4;
+  --primary-foreground: #fff;
+  --secondary: #dfe1fb;
+  --muted: #eceef5;
+  --muted-foreground: #5d6077;
+  --soft-foreground: #4a4d66;
+  --border: #e3e5ef;
+  --input: #d4d6ef;
+  --destructive: #d12c4a;
+  --radius: 0px;
+  --shadow-card: 0 24px 60px rgba(40, 44, 110, 0.1);
+  --background-page: linear-gradient(180deg, #eceef5 0%, #e4e6f7 18%, #ebe4f5 36%, #e1ebf4 56%, #e8e6f8 76%, #eceef5 100%);
+  --font-sans: "Geologica", system-ui, sans-serif;
+  --font-mono: ui-monospace, Menlo, monospace;
+  --text-page-title: 36px;
+  --text-page-title-lg: 48px;
+  --text-title: 20px;
+  --text-label: 12px;
+  --text-logo: 17px;
+}
+* { box-sizing: border-box; }
+html { background: var(--background); }
+body {
+  margin: 0;
+  background: var(--background-page) fixed;
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+.page { max-width: 900px; margin: 0 auto; padding: 40px 16px 80px; }
+header.top { display: flex; align-items: center; gap: 10px; font-size: var(--text-logo); font-weight: 600; }
+.sq { display: inline-block; width: 18px; height: 18px; background: var(--primary); flex-shrink: 0; }
+.sq.sm { width: 12px; height: 12px; }
+h1 { font-weight: 500; font-size: var(--text-page-title-lg); line-height: 1; letter-spacing: -0.045em; margin: 20px 0 14px; text-wrap: balance; }
+h2 { font-weight: 500; font-size: 30px; line-height: 1.1; letter-spacing: -0.03em; margin: 64px 0 18px; display: flex; align-items: baseline; gap: 12px; text-wrap: balance; }
+h2 .num { font-size: 16px; color: var(--primary-strong); font-weight: 600; letter-spacing: 0; }
+h3 { font-weight: 500; font-size: var(--text-title); line-height: 1.2; letter-spacing: -0.02em; margin: 28px 0 10px; }
+p { margin: 8px 0; text-wrap: pretty; }
+.lead { font-size: 18px; color: var(--soft-foreground); max-width: 700px; }
+.muted { color: var(--muted-foreground); }
+.small { font-size: 14px; }
+code { font-family: var(--font-mono); font-size: 0.86em; background: var(--card); border: 1px solid var(--border); padding: 1px 5px; overflow-wrap: anywhere; }
+ul.points { padding-left: 20px; margin: 8px 0; }
+ul.points li { margin: 5px 0; }
+.label { font-size: var(--text-label); letter-spacing: 0.06em; text-transform: uppercase; color: var(--primary-strong); }
+.card { background: var(--card); box-shadow: var(--shadow-card); padding: 20px 24px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; background: var(--card); border: 1px solid var(--input); font-size: 14px; }
+.chip.accent { color: var(--primary-strong); background: var(--secondary); border-color: var(--secondary); }
+
+/* Screen sketches */
+.screens { display: grid; gap: 32px; }
+.screen-title { font-size: 18px; font-weight: 500; margin: 0 0 8px; }
+.device { background: var(--background-page); border: 1px solid var(--input); padding: 16px; }
+.appbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 14px; margin-bottom: 14px; }
+.brand { display: flex; align-items: center; gap: 8px; font-size: var(--text-logo); font-weight: 600; white-space: nowrap; }
+.usermenu { display: flex; align-items: center; gap: 12px; min-width: 0; font-size: 14px; padding: 4px 6px; }
+.usermenu .mail { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--soft-foreground); }
+.btn { display: inline-flex; align-items: center; justify-content: center; background: var(--primary); color: var(--primary-foreground); padding: 9px 16px; font-size: 14px; font-weight: 500; white-space: nowrap; }
+.btn-outline { display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--input); background: var(--card); color: var(--foreground); padding: 7px 14px; font-size: 14px; font-weight: 500; white-space: nowrap; }
+.panel { background: var(--card); }
+.row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--border); }
+.row:first-child { border-top: 0; }
+.avatar { width: 36px; height: 36px; background: var(--secondary); color: var(--primary-strong); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 500; flex-shrink: 0; }
+.row .who { flex: 1; min-width: 0; }
+.row .name { font-weight: 500; }
+.row .meta { font-size: 13px; color: var(--muted-foreground); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.page-title { font-size: var(--text-page-title); line-height: 1.05; letter-spacing: -0.04em; font-weight: 500; margin: 0; }
+.list-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 4px 0 14px; flex-wrap: wrap; }
+.search { background: var(--card); border: 1px solid var(--input); padding: 10px 14px; color: var(--muted-foreground); font-size: 14px; }
+.count { font-size: 13px; color: var(--muted-foreground); margin: 6px 0 10px; }
+.center-card { background: var(--card); padding: 28px 24px; max-width: 420px; margin: 8px auto; display: grid; gap: 12px; }
+.center-card .t { font-size: var(--text-title); font-weight: 500; letter-spacing: -0.02em; }
+.field-k { font-size: 13px; color: var(--soft-foreground); margin-bottom: 4px; }
+.input { border: 1px solid var(--input); background: var(--card); padding: 9px 12px; font-size: 14px; }
+.input.bad { border-color: var(--destructive); }
+.err { color: var(--destructive); font-size: 13px; margin-top: 4px; }
+.msg { font-size: 14px; color: var(--soft-foreground); background: var(--muted); padding: 10px 12px; }
+.empty { background: var(--card); padding: 40px 20px; text-align: center; display: grid; gap: 8px; justify-items: center; }
+.empty .t { font-size: var(--text-title); font-weight: 500; }
+.empty .h { font-size: 14px; color: var(--muted-foreground); max-width: 340px; }
+.is-new { position: relative; outline: 2px dashed var(--primary); outline-offset: 4px; }
+.new-tag { position: absolute; top: -13px; right: 10px; background: var(--primary); color: var(--primary-foreground); font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; z-index: 1; }
+.states { display: grid; gap: 10px; margin-top: 14px; }
+.state { background: var(--card); padding: 10px 14px; display: grid; gap: 4px; }
+.state .k { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); }
+.mail-frame { background: var(--card); max-width: 520px; }
+.mail-head { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 14px; display: grid; gap: 2px; }
+.mail-head .k { color: var(--muted-foreground); display: inline-block; min-width: 54px; }
+.mail-body { padding: 20px 16px; display: grid; gap: 12px; justify-items: start; font-size: 14px; color: var(--soft-foreground); }
+.callouts { margin: 10px 0 0; padding-left: 20px; font-size: 14px; color: var(--soft-foreground); }
+.callouts li { margin: 3px 0; }
+
+/* Rules: full-width strips, one under another */
+.rules { display: grid; gap: 12px; }
+.rule { background: var(--card); padding: 16px 20px; }
+.rule .h { font-weight: 600; margin-bottom: 4px; }
+.example { font-size: 14px; color: var(--soft-foreground); background: var(--muted); border-left: 3px solid var(--primary); padding: 8px 12px; margin-top: 10px; }
+table.plain { border-collapse: collapse; width: 100%; font-size: 14px; margin-top: 8px; }
+table.plain th, table.plain td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+table.plain th { color: var(--muted-foreground); font-weight: 500; }
+.tablewrap { overflow-x: auto; }
+
+/* Data model */
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 14px; color: var(--muted-foreground); margin: 10px 0; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.sw { width: 14px; height: 14px; border: 1.5px solid var(--input); background: var(--card); }
+.sw.new { border-color: var(--primary); background: var(--secondary); }
+.schema { background: var(--card); overflow-x: auto; margin: 10px 0; }
+.schema svg { display: block; width: 100%; min-width: 760px; height: auto; }
+.scroll-hint { display: none; font-size: 13px; color: var(--muted-foreground); }
+@media (max-width: 800px) { .scroll-hint { display: block; } }
+.box { fill: var(--card); stroke: var(--input); stroke-width: 1.5; }
+.box.new { fill: var(--secondary); stroke: var(--primary); }
+.head { fill: var(--border); }
+.head.new { fill: var(--primary); }
+.tname { font: 500 14px var(--font-mono); fill: var(--foreground); }
+.tname.on-accent { fill: var(--primary-foreground); }
+.tru { font: 400 13px var(--font-sans); fill: var(--muted-foreground); }
+.tru.on-accent { fill: var(--primary-foreground); opacity: 0.9; }
+.srow { font: 400 13px var(--font-mono); fill: var(--foreground); }
+.srow .ru { font-family: var(--font-sans); fill: var(--muted-foreground); }
+.srow.hl { fill: var(--primary-strong); font-weight: 600; }
+.srow.hl .ru { fill: var(--primary-strong); }
+.rowbg { fill: var(--secondary); }
+.link { fill: none; stroke: var(--muted-foreground); stroke-width: 1.5; }
+.link.new { stroke: var(--primary); stroke-width: 2; }
+.arrow { fill: var(--muted-foreground); }
+.arrow.new { fill: var(--primary); }
+.snote { font: 400 13px var(--font-sans); fill: var(--muted-foreground); }
+.snote.new { fill: var(--primary-strong); font-weight: 500; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.cards .card { box-shadow: none; padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.cards .card .mono { font-family: var(--font-mono); color: var(--primary-strong); font-weight: 600; font-size: 14px; }
+.cards .card p { color: var(--soft-foreground); font-size: 15px; margin: 0; }
+.lookup { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin: 12px 0; }
+.who-box { background: var(--card); padding: 18px; display: grid; gap: 10px; min-width: 0; }
+.who-box h3 { margin: 0; }
+.ask { font-family: var(--font-mono); font-size: 14px; background: var(--muted); padding: 10px 12px; overflow-wrap: anywhere; }
+.ask b { color: var(--primary-strong); font-weight: 600; }
+.result { justify-self: start; font-size: 14px; font-weight: 500; padding: 4px 12px; }
+.result.ok { background: var(--secondary); color: var(--primary-strong); }
+.result.no { background: var(--card); color: var(--destructive); border: 1px solid var(--destructive); }
+.steps { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 12px; counter-reset: step; }
+.steps li { counter-increment: step; display: grid; grid-template-columns: 44px 1fr; gap: 14px; background: var(--card); border: 1.5px solid var(--card); padding: 16px 20px; }
+.steps li::before { content: counter(step); font-size: 26px; line-height: 1; font-weight: 500; color: var(--muted-foreground); }
+.steps li.changes { border-color: var(--primary); }
+.steps li.changes::before { color: var(--primary-strong); }
+.steps .body { display: grid; gap: 6px; min-width: 0; }
+.steps .body h3 { margin: 0; }
+.steps p { color: var(--soft-foreground); font-size: 15px; margin: 0; }
+.tag { display: inline-block; font-size: 12px; font-weight: 500; letter-spacing: 0.04em; color: var(--primary-strong); background: var(--secondary); padding: 2px 10px; margin-left: 8px; vertical-align: 2px; }
+.flow { display: grid; max-width: 700px; margin: 12px 0; }
+.fbox { background: var(--card); border: 1.5px solid var(--card); padding: 12px 16px; display: grid; gap: 4px; }
+.fbox.q { background: var(--muted); border-color: var(--input); }
+.fbox.stop { border-color: var(--destructive); }
+.fbox.go { border-color: var(--primary); }
+.fbox .k { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); }
+.fbox p { color: var(--soft-foreground); font-size: 15px; margin: 0; }
+.down { justify-self: center; width: 2px; height: 22px; background: var(--input); }
+.branches { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.branch { display: grid; gap: 8px; align-content: start; }
+.blabel { font-size: 13px; font-weight: 500; color: var(--muted-foreground); padding-left: 2px; }
+.datatable { background: var(--card); overflow-x: auto; margin: 14px 0 6px; }
+.datatable table { border-collapse: collapse; width: 100%; font-size: 15px; font-variant-numeric: tabular-nums; }
+.datatable th, .datatable td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--border); }
+.datatable th { font-weight: 500; color: var(--muted-foreground); font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; }
+.datatable tr:last-child td { border-bottom: 0; }
+.datatable td.new { color: var(--primary-strong); font-weight: 500; }
+.caption { font-size: 13px; color: var(--muted-foreground); }
+.callout { border-left: 3px solid var(--primary); padding: 4px 0 4px 18px; max-width: 700px; margin-top: 18px; }
+.callout h3 { margin: 0 0 6px; }
+.callout p { color: var(--soft-foreground); }
+
+/* Checklist */
+.prep { background: var(--card); border-left: 3px solid var(--primary); padding: 14px 18px; font-size: 14px; color: var(--soft-foreground); }
+.prep ul { margin: 6px 0 0; padding-left: 18px; }
+.check-group { margin-bottom: 18px; }
+.check { display: flex; gap: 10px; align-items: flex-start; padding: 11px 14px; background: var(--card); margin: 6px 0; cursor: pointer; }
+.check input { margin-top: 5px; accent-color: var(--primary); width: 16px; height: 16px; flex-shrink: 0; }
+.check .sc { font-weight: 600; }
+.check .st { font-size: 14px; color: var(--soft-foreground); }
+.check .st .arrow { color: var(--primary-strong); font-weight: 700; }
+.badge { font-size: 12px; font-weight: 500; margin-left: 8px; padding: 1px 8px; background: var(--secondary); color: var(--primary-strong); white-space: nowrap; }
+.badge.hand { background: var(--muted); color: var(--soft-foreground); border: 1px solid var(--input); }
+
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.box-card h3 { margin-top: 0; }
+footer { margin-top: 64px; font-size: 13px; color: var(--muted-foreground); }
+
+@media (max-width: 720px) {
+  h1 { font-size: var(--text-page-title); }
+  h2 { font-size: 24px; }
+  .two { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="top"><span class="sq"></span>Личная CRM · обзор фичи</header>
+<h1>Вход по ссылке из письма</h1>
+<p class="lead">Каждый входит под своей почтой — по ссылке из письма, без пароля — и видит только свои контакты, заметки и группы. Все нынешние данные становятся вашими.</p>
+<div class="chips">
+  <span class="chip">Спроектирована, кода ещё нет</span>
+  <span class="chip">Задачи: 0 из 38</span>
+  <span class="chip">Сценариев: 61, автотест запланирован на каждый, кроме одного</span>
+  <span class="chip">Макеты ещё не сделаны</span>
+  <span class="chip accent">Изменение <code>login</code>, ветка <code>login</code></span>
+</div>
+
+<!-- 1 -->
+<h2><span class="num">1</span>Коротко</h2>
+<ul class="points">
+  <li>Без входа приложение не открывается. Открывается страница входа: поле «Почта» и кнопка «Получить ссылку».</li>
+  <li>На почту приходит письмо с кнопкой «Войти». Нажал — ты внутри. Паролей нет, первый вход и есть регистрация.</li>
+  <li>У каждого контакта и каждой группы появляется владелец. Чужое не видно и не открывается, даже по прямой ссылке.</li>
+  <li>Все контакты, заметки и группы, которые уже есть в базе, достаются пользователю с вашей почтой из настройки <code>OWNER_EMAIL</code>.</li>
+  <li>Статус: <b>спроектирована</b>. Отмечено 0 задач из 38. Код начнётся после того, как вы одобрите макеты экранов (первая задача).</li>
+  <li>Автотесты (программы, которые сами проходят сценарий и сверяют результат) запланированы на каждый сценарий. Исключение — «Письмо на сервере»: автотесты настоящих писем не шлют, его проверяете вы после выкатки.</li>
+</ul>
+
+<!-- 2 -->
+<h2><span class="num">2</span>Что появится на экранах</h2>
+<p class="muted small">Наброски, не макеты: макеты будут первым шагом реализации. Новое обведено пунктиром. Имена, почты и числа выдуманы.</p>
+
+<div class="screens">
+  <div>
+    <p class="screen-title">Страница входа</p>
+    <div class="device">
+      <div class="appbar"><span class="brand"><span class="sq"></span>Личная CRM</span></div>
+      <div class="is-new"><span class="new-tag">новое</span>
+        <div class="center-card">
+          <div class="t">Вход в Личную CRM</div>
+          <div><div class="field-k">Почта</div><div class="input">anna@example.com</div></div>
+          <div><span class="btn">Получить ссылку</span></div>
+          <div class="msg">Ссылка для входа отправлена на anna@example.com</div>
+        </div>
+      </div>
+      <div class="states">
+        <div class="state"><span class="k">Неверный или пустой адрес</span><div class="input bad">anna@</div><div class="err">Проверьте адрес почты</div></div>
+        <div class="state"><span class="k">Сработал лимит</span><div class="msg">Слишком часто, попробуйте через несколько минут</div></div>
+        <div class="state"><span class="k">Почта не отправилась</span><div class="msg">Не удалось отправить письмо. Попробуйте ещё раз.</div></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>После отправки форма остаётся на месте, сообщение — под ней. Можно сразу запросить ещё раз или на другую почту.</li>
+      <li>В сообщении почта такая, куда ушло письмо: без пробелов, маленькими буквами. Ввели « Anna@Example.COM » — видите «anna@example.com».</li>
+      <li>В шапке без входа — только логотип.</li>
+      <li>Вы уже вошли и открыли эту страницу — попадёте на главную.</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">Письмо</p>
+    <div class="device">
+      <div class="is-new"><span class="new-tag">новое</span>
+        <div class="mail-frame">
+          <div class="mail-head">
+            <div><span class="k">От:</span>Личная CRM &lt;noreply@mail.percrm.ru&gt;</div>
+            <div><span class="k">Тема:</span>Вход в Личную CRM</div>
+          </div>
+          <div class="mail-body">
+            <span class="btn">Войти</span>
+            <div>Ссылка работает 15 минут.</div>
+            <div>Если вы не запрашивали вход — просто проигнорируйте письмо.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>На сервере письмо приходит с <code>noreply@mail.percrm.ru</code> — поддомена вашего percrm.ru, подтверждённого в Resend.</li>
+      <li>На вашем компьютере отправитель — <code>v.danil903@gmail.com</code>, а письмо попадает не в ящик, а в Mailpit (почтовую заглушку): <code>http://127.0.0.1:8025</code>.</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">«Ссылка устарела»</p>
+    <div class="device">
+      <div class="appbar"><span class="brand"><span class="sq"></span>Личная CRM</span></div>
+      <div class="is-new"><span class="new-tag">новое</span>
+        <div class="center-card">
+          <div class="t">Ссылка устарела, запросите новую</div>
+          <div><span class="btn-outline">Получить новую ссылку</span></div>
+        </div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Открывается для любой неработающей ссылки: прошло больше 15 минут, ссылкой уже входили, после неё запросили новую, в ссылке ошибка.</li>
+      <li>Кнопка открывает страницу входа.</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">Главная — у вошедшего</p>
+    <div class="device">
+      <div class="appbar">
+        <span class="brand"><span class="sq"></span>Личная CRM</span>
+        <span class="is-new usermenu"><span class="new-tag">новое</span><span class="mail">v.owner@example.com</span><span class="btn-outline">Выйти</span></span>
+      </div>
+      <div class="list-head"><p class="page-title">Контакты</p><span class="btn">Добавить контакт</span></div>
+      <div class="search">Найти контакт по имени</div>
+      <div class="count">1&nbsp;002 контакта</div>
+      <div class="panel">
+        <div class="row"><span class="avatar">АС</span><div class="who"><div class="name">Анна Смирнова</div><div class="meta">Дизайнер интерфейсов · Работали вместе в студии «Квадрат»</div></div></div>
+        <div class="row"><span class="avatar">БП</span><div class="who"><div class="name">Борис Петров</div><div class="meta">Юрист · Учились на одном потоке в МГУ</div></div></div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>В шапке на всех страницах — ваша почта и «Выйти». На телефоне длинная почта обрезается многоточием.</li>
+      <li>«Выйти» выводит только на этом устройстве и открывает страницу входа. На телефоне вы остаётесь внутри.</li>
+      <li>Сама главная, карточка, группы, фильтр и «Пора связаться» выглядят как раньше — просто в них только ваше.</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">Главная — у нового пользователя</p>
+    <div class="device">
+      <div class="appbar">
+        <span class="brand"><span class="sq"></span>Личная CRM</span>
+        <span class="usermenu"><span class="mail">boris@example.com</span><span class="btn-outline">Выйти</span></span>
+      </div>
+      <div class="list-head"><p class="page-title">Контакты</p><span class="is-new muted small" style="padding:6px 10px"><span class="new-tag">новое</span>кнопки наверху нет</span></div>
+      <div class="count">0 контактов</div>
+      <div class="empty">
+        <div class="t">Здесь пока никого нет</div>
+        <div class="is-new" style="display:grid;gap:12px;justify-items:center;padding:6px 10px"><span class="new-tag">новое</span>
+          <div class="h">Добавьте первого человека, о ком не хочется забыть.</div>
+          <span class="btn">Добавить контакт</span>
+        </div>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Пока контактов нет, кнопка «Добавить контакт» одна — в белом блоке. Она открывает обычную форму «Новый контакт».</li>
+      <li>С первым контактом белый блок пропадает, а кнопка снова наверху, как всегда. Удалили последний контакт — опять белый блок с кнопкой.</li>
+      <li>Так пустой список выглядит у любого, у кого 0 контактов, не только у нового пользователя. Блока «Пора связаться» нет.</li>
+      <li>Групп у нового пользователя нет. На странице «Группы» прежний текст: «Групп пока нет. Нажмите «Создать группу».»</li>
+    </ul>
+  </div>
+
+  <div>
+    <p class="screen-title">Чужой или несуществующий контакт по ссылке</p>
+    <div class="device">
+      <div class="appbar">
+        <span class="brand"><span class="sq"></span>Личная CRM</span>
+        <span class="usermenu"><span class="mail">boris@example.com</span><span class="btn-outline">Выйти</span></span>
+      </div>
+      <div class="empty">
+        <div class="t is-new" style="padding:2px 6px"><span class="new-tag">другой текст</span>Контакт не найден</div>
+        <div class="h">Возможно, ссылка неполная или с ошибкой. Найдите человека в общем списке.</div>
+        <span class="btn-outline">Ко всем контактам</span>
+      </div>
+    </div>
+    <ul class="callouts">
+      <li>Был заголовок «Такого контакта нет», станет «Контакт не найден».</li>
+      <li>Чужой и несуществующий контакт показывают одну и ту же страницу. По ней нельзя понять, что контакт есть у кого-то другого.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 3 -->
+<h2><span class="num">3</span>Как это работает</h2>
+<div class="rules">
+  <div class="rule">
+    <div class="h">Без входа ничего не открывается</div>
+    <p>Любой адрес приложения без входа ведёт на страницу входа. Без входа открываются только страница входа, «Ссылка устарела» и служебная проверка <code>/health</code> (по ней выкатка понимает, что приложение живо).</p>
+    <div class="example">Друг открыл пересланную вами ссылку на карточку, ещё не войдя, → видит страницу входа, а не карточку.</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Почта: без пробелов по краям, регистр букв не важен</div>
+    <p>Пустая или неверная почта — «Проверьте адрес почты» под полем, письмо не уходит. Сервер проверяет почту так же, даже если запрос пришёл не из формы.</p>
+    <div class="example">« Anna@Example.COM » и «anna@example.com» — один и тот же пользователь.<br>«anna@» — «Проверьте адрес почты».</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Одно и то же сообщение для всех</div>
+    <p>После отправки всегда «Ссылка для входа отправлена на &lt;почта&gt;» — и для того, кто уже входил, и для новой почты. Так нельзя узнать, есть ли у приложения такой пользователь. Исключения — лимит и сбой отправки.</p>
+  </div>
+
+  <div class="rule">
+    <div class="h">Лимит на одну почту: 3 письма за 10 минут</div>
+    <p>Считаются последние 10 минут от каждого момента («скользящее окно»). Отказы из-за неверной почты и лимита не считаются. Неудачная отправка считается. Лимит одной почты не мешает другой.</p>
+    <div class="example">Письма в 12:00, 12:03 и 12:05. В 12:07 — «Слишком часто, попробуйте через несколько минут». После 12:10 снова можно: первое письмо вышло из окна.<br>В 12:07 на boris@example.com с того же компьютера — уходит.</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Лимит с одного адреса в интернете: 10 писем за 60 минут</div>
+    <p>Адрес в интернете (IP — номер устройства или сети в интернете) — одинаковый для всех, кто сидит, например, в одной сети Wi-Fi. Считаются письма на любые почты. Сверх лимита — тот же текст «Слишком часто…». Защищает от рассылки писем незнакомым людям.</p>
+    <div class="example">С одного компьютера за час запросили ссылки на 10 разных почт. Одиннадцатая — «Слишком часто…».</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Ссылка: один раз и 15 минут, новая отменяет старые</div>
+    <p>Любая неработающая ссылка ведёт на «Ссылка устарела, запросите новую».</p>
+    <div class="example">Запросили ссылку в 10:00, потом ещё одну в 10:02. Первая уже не работает, вторая работает до 10:17 и только один раз.</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Первый вход — и есть регистрация</div>
+    <p>Отдельной формы нет, имя не спрашиваем. После входа всегда открывается главная, даже если до входа открывали карточку.</p>
+  </div>
+
+  <div class="rule">
+    <div class="h">Вход держится 30 дней с последнего захода</div>
+    <p>Каждый заход сдвигает срок на 30 дней вперёд, но не чаще раза в час. Можно быть внутри на нескольких устройствах сразу. «Выйти» выводит только на этом устройстве.</p>
+    <div class="example">Вошли 1 ноября, заходили 20 ноября → вход держится до 20 декабря. Не заходили больше 30 дней → снова страница входа.</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Каждый видит и меняет только своё</div>
+    <p>Список, поиск, счётчик, карточка, заметки, группы, фильтр по группам, блок «Пора связаться» — только данные того, кто вошёл. Сервер проверяет владельца в каждом действии. Чужая запись для него как несуществующая.</p>
+    <div class="example">B открыл ссылку на карточку контакта A → «Контакт не найден».<br>B открыл пересланную ссылку на главную с фильтром по группе A «Теннис» → выбрано «Все», видны только его контакты.<br>В старой вкладке с карточкой A теперь вошёл B и пишет заметку → «Этот контакт больше не существует.», у A ничего не изменилось.</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Группы у каждого свои</div>
+    <p>Новый пользователь начинает без групп. Пять готовых групп («Аналитики», «Друзья», «Знакомые», «Семья», «Теннис») остаются у вас. Запрет одинаковых названий действует только внутри своих групп.</p>
+    <div class="example">У A есть «Друзья». B создаёт свою «Друзья» — получается. У A его «Друзья» с теми же людьми.</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Пустой список — одна кнопка, в белом блоке</div>
+    <p>Пока у вас нет ни одного контакта, кнопки «Добавить контакт» наверху нет: она внутри блока «Здесь пока никого нет». Есть хотя бы один контакт — кнопка наверху, как всегда. Считаются все ваши контакты, а не найденные поиском или фильтром.</p>
+    <div class="example">Новый пользователь: «0 контактов», кнопка только в белом блоке → добавил «Анну Смирнову» → «1 контакт», кнопка наверху.<br>У вас 1&nbsp;002 контакта, поиск «Зоя» никого не нашёл → «Никого не нашли по запросу «Зоя»», кнопка наверху на месте.</div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Нынешние данные — вам, ни одна запись не теряется</div>
+    <p>Владелец — пользователь с почтой из настройки <code>OWNER_EMAIL</code> в <code>.env</code>. В git почта не попадает: репозиторий публичный. Если в базе есть данные, а настройки нет, выкатка останавливается, база не меняется. Демо-данные тоже создаются у этого пользователя.</p>
+  </div>
+
+  <div class="rule">
+    <div class="h">Куда уходят письма — решают настройки</div>
+    <p>Одна и та же сборка приложения работает везде. Отправляет везде одна библиотека Nodemailer.</p>
+    <div class="tablewrap">
+      <table class="plain">
+        <tr><th>Где</th><th>Куда попадает письмо</th></tr>
+        <tr><td>Ваш компьютер</td><td>Mailpit — почтовая заглушка в Docker рядом с базой, страница <code>http://127.0.0.1:8025</code>. Войти можно под любым адресом.</td></tr>
+        <tr><td>Автотесты, в том числе на GitHub</td><td>Тот же Mailpit, автотест берёт ссылку оттуда. Настоящих писем нет.</td></tr>
+        <tr><td>Сервер</td><td>Настоящий ящик получателя, через сервис Resend, с адреса <code>noreply@mail.percrm.ru</code>. Resend шлёт только с подтверждённого в нём домена, поэтому не с Gmail.</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="rule">
+    <div class="h">Откат после выкатки входа — только вместе</div>
+    <p>Прошлая версия приложения и база из копии, снятой перед выкаткой. Всё, что добавили после выкатки, при таком откате пропадёт. Запускаете вы.</p>
+  </div>
+</div>
+
+<!-- 4 -->
+<h2><span class="num">4</span>Модель данных до и после</h2>
+<p>Модель данных — какие таблицы лежат в базе и какие в них поля. Фича добавляет пользователей и входы, а контактам и группам — владельца.</p>
+
+<h3>Сейчас: у данных нет хозяина</h3>
+<p class="muted">Четыре таблицы. Все контакты и группы общие. Название группы уникально на всё приложение.</p>
+<p class="scroll-hint">Схему можно листать вбок.</p>
+<div class="schema">
+  <svg viewBox="0 0 880 420" role="img" aria-label="Схема сейчас: contacts, notes, groups, contact_groups">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow" /></marker>
+    </defs>
+    <path class="link" d="M290 170 H400 V246" marker-end="url(#a1)" />
+    <path class="link" d="M715 154 V200 H480 V246" marker-end="url(#a1)" />
+    <path class="link" d="M165 202 V276" marker-end="url(#a1)" />
+    <text class="snote" x="178" y="244">у контакта много заметок</text>
+    <text class="snote" x="440" y="374" text-anchor="middle">кто в какой группе: многие ко многим</text>
+
+    <rect class="box" x="40" y="30" width="250" height="172" />
+    <rect class="head" x="40" y="30" width="250" height="36" />
+    <text class="tname" x="56" y="53">contacts</text>
+    <text class="tru" x="274" y="53" text-anchor="end">контакты</text>
+    <text class="srow" x="56" y="90">id</text>
+    <text class="srow" x="56" y="114">name, about, how_we_met</text>
+    <text class="srow" x="56" y="138">phone, email</text>
+    <text class="srow" x="56" y="162">contact_frequency</text>
+    <text class="srow" x="56" y="186">last_contacted_at</text>
+
+    <rect class="box" x="590" y="30" width="250" height="124" />
+    <rect class="head" x="590" y="30" width="250" height="36" />
+    <text class="tname" x="606" y="53">groups</text>
+    <text class="tru" x="824" y="53" text-anchor="end">группы</text>
+    <text class="srow" x="606" y="90">id</text>
+    <text class="srow" x="606" y="114">name <tspan class="ru">— уникально на всех</tspan></text>
+    <text class="srow" x="606" y="138">created_at</text>
+
+    <rect class="box" x="315" y="250" width="250" height="100" />
+    <rect class="head" x="315" y="250" width="250" height="36" />
+    <text class="tname" x="331" y="273">contact_groups</text>
+    <text class="srow" x="331" y="310">contact_id</text>
+    <text class="srow" x="331" y="334">group_id</text>
+
+    <rect class="box" x="40" y="280" width="250" height="124" />
+    <rect class="head" x="40" y="280" width="250" height="36" />
+    <text class="tname" x="56" y="303">notes</text>
+    <text class="tru" x="274" y="303" text-anchor="end">заметки</text>
+    <text class="srow" x="56" y="340">id</text>
+    <text class="srow" x="56" y="364">contact_id</text>
+    <text class="srow" x="56" y="388">body, created_at</text>
+  </svg>
+</div>
+
+<h3>После: у контакта и группы есть владелец</h3>
+<p class="muted">Новая таблица <code>users</code> — пользователи, главное в ней почта. У контактов и групп — поле <code>user_id</code>: номер пользователя-владельца. Заметки и «кто в какой группе» не меняются: их владелец — владелец контакта.</p>
+<div class="legend"><span><i class="sw new"></i>новое</span><span><i class="sw"></i>как было</span></div>
+<p class="scroll-hint">Схему можно листать вбок.</p>
+<div class="schema">
+  <svg viewBox="0 0 880 640" role="img" aria-label="Схема после: users связан с sessions, contacts и groups через user_id">
+    <defs>
+      <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow" /></marker>
+      <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" class="arrow new" /></marker>
+    </defs>
+    <path class="link new" d="M565 92 H636" marker-end="url(#a3)" />
+    <path class="link new" d="M380 178 V214 H165 V246" marker-end="url(#a3)" />
+    <path class="link new" d="M500 178 V214 H715 V246" marker-end="url(#a3)" />
+    <text class="snote new" x="600" y="84" text-anchor="middle">входы</text>
+    <text class="snote new" x="272" y="206" text-anchor="middle">владелец</text>
+    <text class="snote new" x="608" y="206" text-anchor="middle">владелец</text>
+    <path class="link" d="M290 400 H400 V466" marker-end="url(#a2)" />
+    <path class="link" d="M715 398 V440 H480 V466" marker-end="url(#a2)" />
+    <path class="link" d="M165 422 V496" marker-end="url(#a2)" />
+
+    <rect class="box new" x="315" y="30" width="250" height="148" />
+    <rect class="head new" x="315" y="30" width="250" height="36" />
+    <text class="tname on-accent" x="331" y="53">users</text>
+    <text class="tru on-accent" x="549" y="53" text-anchor="end">пользователи</text>
+    <text class="srow" x="331" y="90">id</text>
+    <text class="srow" x="331" y="114">email <tspan class="ru">— уникальна</tspan></text>
+    <text class="srow" x="331" y="138">name <tspan class="ru">— не спрашиваем</tspan></text>
+    <text class="srow" x="331" y="162">created_at, …</text>
+
+    <rect class="box new" x="640" y="30" width="200" height="124" />
+    <rect class="head new" x="640" y="30" width="200" height="36" />
+    <text class="tname on-accent" x="656" y="53">sessions</text>
+    <text class="tru on-accent" x="824" y="53" text-anchor="end">входы</text>
+    <text class="srow" x="656" y="90">user_id</text>
+    <text class="srow" x="656" y="114">token <tspan class="ru">— в куке</tspan></text>
+    <text class="srow" x="656" y="138">expires_at <tspan class="ru">— 30 дн.</tspan></text>
+
+    <rect class="box" x="40" y="250" width="250" height="172" />
+    <rect class="head" x="40" y="250" width="250" height="36" />
+    <text class="tname" x="56" y="273">contacts</text>
+    <text class="tru" x="274" y="273" text-anchor="end">контакты</text>
+    <text class="srow" x="56" y="310">id</text>
+    <rect class="rowbg" x="46" y="317" width="238" height="24" />
+    <text class="srow hl" x="56" y="334">user_id <tspan class="ru">— чей контакт</tspan></text>
+    <text class="srow" x="56" y="358">name, about, how_we_met</text>
+    <text class="srow" x="56" y="382">phone, email</text>
+    <text class="srow" x="56" y="406">contact_frequency, …</text>
+
+    <rect class="box" x="590" y="250" width="250" height="148" />
+    <rect class="head" x="590" y="250" width="250" height="36" />
+    <text class="tname" x="606" y="273">groups</text>
+    <text class="tru" x="824" y="273" text-anchor="end">группы</text>
+    <text class="srow" x="606" y="310">id</text>
+    <rect class="rowbg" x="596" y="317" width="238" height="24" />
+    <text class="srow hl" x="606" y="334">user_id <tspan class="ru">— чья группа</tspan></text>
+    <rect class="rowbg" x="596" y="341" width="238" height="24" />
+    <text class="srow hl" x="606" y="358">name <tspan class="ru">— уникально у владельца</tspan></text>
+    <text class="srow" x="606" y="382">created_at</text>
+
+    <rect class="box" x="315" y="470" width="250" height="100" />
+    <rect class="head" x="315" y="470" width="250" height="36" />
+    <text class="tname" x="331" y="493">contact_groups</text>
+    <text class="tru" x="549" y="493" text-anchor="end">как было</text>
+    <text class="srow" x="331" y="530">contact_id</text>
+    <text class="srow" x="331" y="554">group_id</text>
+
+    <rect class="box" x="40" y="500" width="250" height="124" />
+    <rect class="head" x="40" y="500" width="250" height="36" />
+    <text class="tname" x="56" y="523">notes</text>
+    <text class="tru" x="274" y="523" text-anchor="end">как было</text>
+    <text class="srow" x="56" y="560">id</text>
+    <text class="srow" x="56" y="584">contact_id</text>
+    <text class="srow" x="56" y="608">body, created_at</text>
+  </svg>
+</div>
+
+<h3>Служебные таблицы входа</h3>
+<div class="cards">
+  <div class="card"><span class="mono">verifications</span><p>Ссылки из писем, пока ими не воспользовались. В базе лежит не сама ссылка, а её отпечаток (хэш): кто прочтёт базу, по нему не войдёт.</p></div>
+  <div class="card"><span class="mono">login_link_requests</span><p>Когда, на какую почту и с какого адреса в интернете просили письмо. По ней считаются оба лимита. Записи старше суток удаляются сами.</p></div>
+  <div class="card"><span class="mono">accounts</span><p>Нужна библиотеке входа Better Auth. Паролей у нас нет, поэтому она почти пустая.</p></div>
+</div>
+
+<h3>Как добавляется пользователь и вход</h3>
+<ul class="points">
+  <li>Пользователь — строка в <code>users</code> с почтой. Создаётся сама, когда человек первый раз открывает ссылку из письма.</li>
+  <li>Вход на устройстве — строка в <code>sessions</code>. Браузер хранит её в куке (маленькой записи, которую сайт оставляет в браузере) и по ней узнаёт вас на каждой странице. Компьютер и телефон — две строки. «Выйти» удаляет только строку этого устройства.</li>
+</ul>
+
+<h3>Как запрос находит свои данные и не находит чужие</h3>
+<p class="muted">К каждому запросу в базу добавляется условие «и владелец — тот, кто вошёл». Пример: у A есть контакт Иван Петров, его адрес — <code>/contacts/7f3c…</code>. Этот адрес открывают оба.</p>
+<div class="lookup">
+  <div class="who-box"><h3>Вошёл A</h3><div class="ask">найди контакт 7f3c… <b>у a@example.com</b></div><span class="result ok">Нашёлся: карточка Ивана</span></div>
+  <div class="who-box"><h3>Вошёл B</h3><div class="ask">найди контакт 7f3c… <b>у b@example.com</b></div><span class="result no">Не нашёлся: «Контакт не найден»</span></div>
+</div>
+<p class="muted">Так же работают правка, удаление, «Отменить» после удаления, заметки, «Связался», группы и «Пора связаться». Правило «нет двух групп с одинаковым названием» теперь действует для пары «владелец + название».</p>
+
+<h3>Три миграции, все одной транзакцией</h3>
+<p class="muted">Миграция — шаг выкатки, который меняет устройство базы. Транзакция — «всё или ничего»: если любой шаг упал, база остаётся ровно такой, как была. Перед миграциями выкатка, как и сейчас, снимает копию базы.</p>
+<ol class="steps">
+  <li><div class="body"><h3><code>0004_login</code> — новые таблицы и пустое поле владельца</h3><p>Создаёт <code>users</code>, <code>sessions</code>, <code>accounts</code>, <code>verifications</code>, <code>login_link_requests</code>. Добавляет <code>user_id</code> контактам и группам — пока необязательный, иначе база не примет старые строки без владельца. Данные не меняет.</p></div></li>
+  <li class="changes"><div class="body"><h3><code>0005_owner_data</code> — отдать старые данные владельцу <span class="tag">меняет данные</span></h3><p>Все существующие контакты и группы получают пользователя с почтой из <code>OWNER_EMAIL</code>. Эту миграцию агент покажет вам до merge.</p></div></li>
+  <li class="changes"><div class="body"><h3><code>0006_owner_required</code> — владелец обязателен <span class="tag">меняет правила</span></h3><p>Контакт или группу без владельца база больше не сохранит. Уникальность названий групп: было «на всё приложение», стало «у одного владельца».</p></div></li>
+</ol>
+
+<h3>Как ваши данные получат владельца</h3>
+<div class="flow">
+  <div class="fbox"><span class="k">Настройка</span><p><code>OWNER_EMAIL</code> в <code>.env</code> — на сервере в <code>/home/deploy/personal-crm/.env</code>, у вас на компьютере в своём <code>.env</code>. Скрипт миграций передаёт почту базе.</p></div>
+  <div class="down"></div>
+  <div class="fbox q"><span class="k">Миграция 0005 спрашивает</span><p>Есть в базе хоть один контакт, заметка или группа?</p></div>
+  <div class="down"></div>
+  <div class="branches">
+    <div class="branch"><span class="blabel">Нет, база пустая</span><div class="fbox"><p>Ничего не делать.</p></div></div>
+    <div class="branch"><span class="blabel">Есть, а почты нет</span><div class="fbox stop"><p>Ошибка «нужно задать OWNER_EMAIL». Все три миграции отменяются, новая версия не стартует, прежняя работает. Саму почту сообщение не показывает: логи выкатки публичные.</p></div></div>
+    <div class="branch"><span class="blabel">Есть, почта задана</span><div class="fbox go"><p>Убрать пробелы, сделать буквы маленькими, найти или создать пользователя с этой почтой, записать его <code>user_id</code> во все контакты и группы.</p></div></div>
+  </div>
+</div>
+<p class="small muted">Новая база (тестовая или на новом компьютере) тоже не пустая: миграция групп кладёт в неё пять готовых групп. Поэтому почта владельца нужна и ей, а группы достаются владельцу.</p>
+
+<div class="datatable">
+  <table>
+    <thead><tr><th>Что в базе</th><th>До выкатки</th><th>После выкатки</th></tr></thead>
+    <tbody>
+      <tr><td>Пользователи</td><td>таблицы нет</td><td class="new">1 — ваша почта</td></tr>
+      <tr><td>Контакты</td><td>1&nbsp;002, без владельца</td><td class="new">1&nbsp;002, владелец — вы</td></tr>
+      <tr><td>Группы</td><td>5, без владельца</td><td class="new">5, владелец — вы</td></tr>
+      <tr><td>Заметки, «кто в какой группе», частоты, отметки «Связался»</td><td>как есть</td><td>те же, не трогались</td></tr>
+    </tbody>
+  </table>
+</div>
+<p class="caption">Числа для примера. Автотест миграции проверяет, что число контактов, заметок, групп и связей до и после совпадает, а без почты база остаётся прежней.</p>
+
+<div class="callout">
+  <h3>Откат только вместе</h3>
+  <p>Прошлая версия приложения не умеет заполнять <code>user_id</code>. С новой базой она откроет данные, но не сможет добавить контакт или группу. Поэтому откат — две команды, их запускаете вы:</p>
+  <ul class="points small">
+    <li><code>rollback.sh</code> — прошлая версия приложения;</li>
+    <li><code>restore.sh</code> с копией базы, снятой перед выкаткой входа.</li>
+  </ul>
+  <p>Всё, что добавили после выкатки входа, при таком откате пропадает.</p>
+</div>
+
+<!-- 5 -->
+<h2><span class="num">5</span>Как проверить руками</h2>
+<div class="prep">
+  <b>Подготовка на своём компьютере</b>
+  <ul>
+    <li>Добавить в <code>.env</code> новые строки (задача 2.4, агент подскажет значения) и запустить <code>docker compose up -d --wait</code> — база и Mailpit.</li>
+    <li><code>pnpm dev</code>, приложение — <code>http://127.0.0.1:3000</code>, письма — <code>http://127.0.0.1:8025</code>.</li>
+    <li>Пользователи A и B — обычное окно браузера и окно инкогнито.</li>
+    <li>Галочки на этой странице только для удобства и не сохраняются.</li>
+  </ul>
+</div>
+
+<div class="check-group">
+  <h3>Без входа</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Открыл приложение без входа<span class="badge">автотест</span></div><div class="st">Открыть главную в окне инкогнито <span class="arrow">→</span> «Вход в Личную CRM», поле «Почта», кнопка «Получить ссылку». Контактов не видно.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ссылка на карточку без входа<span class="badge">автотест</span></div><div class="st">Без входа открыть адрес карточки или страницы «Группы» <span class="arrow">→</span> страница входа.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Вошедший открыл страницу входа<span class="badge">автотест</span></div><div class="st">Войти, открыть <code>/login</code> <span class="arrow">→</span> главная со своими контактами.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Запрос ссылки и проверка почты</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Отправил ссылку<span class="badge">автотест</span></div><div class="st">Ввести <code>anna@example.com</code>, «Получить ссылку» <span class="arrow">→</span> «Ссылка для входа отправлена на anna@example.com», письмо в Mailpit.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Новая и знакомая почта — одно сообщение<span class="badge">автотест</span></div><div class="st">Запросить ссылку на почту, под которой уже входили, потом на новую <span class="arrow">→</span> оба раза одно сообщение, оба письма пришли.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Неверный адрес<span class="badge">автотест</span></div><div class="st">Ввести <code>anna@</code> <span class="arrow">→</span> под полем «Проверьте адрес почты», в Mailpit ничего нового.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустая почта<span class="badge">автотест</span></div><div class="st">Пустое поле или одни пробелы <span class="arrow">→</span> «Проверьте адрес почты», письма нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Запрос не из формы<span class="badge">автотест</span></div><div class="st">Выполнить в терминале команду из задачи 8.6 (<code>curl … -d '{"email":"anna@"}'</code>) <span class="arrow">→</span> ответ с ошибкой, в Mailpit пусто.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пробелы и большие буквы<span class="badge">автотест</span></div><div class="st">Ввести « Anna@Example.COM » <span class="arrow">→</span> «…отправлена на anna@example.com», письмо на <code>anna@example.com</code>.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Тот же пользователь при другом регистре<span class="badge">автотест</span></div><div class="st">Войти под <code>anna@example.com</code>, добавить контакт, выйти, войти под <code>ANNA@example.com</code> <span class="arrow">→</span> тот же контакт на месте.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Лимиты и сбой отправки</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Четвёртое письмо за 10 минут<span class="badge">автотест</span></div><div class="st">Трижды запросить ссылку на одну почту, потом в четвёртый раз <span class="arrow">→</span> «Слишком часто, попробуйте через несколько минут», четвёртого письма нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Через 10 минут снова можно<span class="badge">автотест</span></div><div class="st">Подождать 10 минут с первого письма и запросить снова <span class="arrow">→</span> «Ссылка для входа отправлена…», письмо пришло.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Лимит одной почты не мешает другой<span class="badge">автотест</span></div><div class="st">Когда лимит на <code>anna@example.com</code> уже сработал, запросить на <code>boris@example.com</code> <span class="arrow">→</span> письмо ушло.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Одиннадцатое письмо за час<span class="badge">автотест</span></div><div class="st">С одного компьютера за час запросить ссылки на 10 разных почт, потом на одиннадцатую <span class="arrow">→</span> «Слишком часто…», письма нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Почта не работает<span class="badge">автотест</span></div><div class="st">Остановить Mailpit (<code>docker compose stop mailpit</code>) и запросить ссылку <span class="arrow">→</span> «Не удалось отправить письмо. Попробуйте ещё раз.» Потом снова запустить Mailpit.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Письмо и куда оно уходит</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Что в письме<span class="badge">автотест</span></div><div class="st">Открыть письмо в Mailpit <span class="arrow">→</span> от «Личная CRM», тема «Вход в Личную CRM», кнопка «Войти», «ссылка работает 15 минут», «Если вы не запрашивали вход — просто проигнорируйте письмо».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Письмо на моём компьютере<span class="badge">автотест</span></div><div class="st">Запросить ссылку на выдуманный адрес <span class="arrow">→</span> письмо в Mailpit, по ссылке вход под этим адресом, настоящего письма никто не получил.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Письмо на сервере<span class="badge hand">только руками, после выкатки</span></div><div class="st">На app.percrm.ru запросить ссылку на свою настоящую почту <span class="arrow">→</span> письмо в вашем ящике, по ссылке вход.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Вход по ссылке и «Ссылка устарела»</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Вошёл по ссылке<span class="badge">автотест</span></div><div class="st">Открыть ссылку из письма на знакомую почту <span class="arrow">→</span> главная со своими контактами, в шапке ваша почта.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Первый вход — и есть регистрация<span class="badge">автотест</span></div><div class="st">Запросить и открыть ссылку на новую почту <span class="arrow">→</span> внутри, пустой список, в шапке эта почта, вопросов не было.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ссылка второй раз<span class="badge">автотест</span></div><div class="st">Войти по ссылке, выйти, открыть ту же ссылку <span class="arrow">→</span> «Ссылка устарела, запросите новую».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ссылка через 15 минут<span class="badge">автотест</span></div><div class="st">Запросить ссылку, подождать 15 минут, открыть <span class="arrow">→</span> «Ссылка устарела…».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Запросил новую — старая не работает<span class="badge">автотест</span></div><div class="st">Запросить две ссылки подряд, открыть первую <span class="arrow">→</span> «Ссылка устарела…»; вторая впускает.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Кнопка на страницу входа<span class="badge">автотест</span></div><div class="st">На «Ссылка устарела…» нажать «Получить новую ссылку» <span class="arrow">→</span> страница входа.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Испорченная ссылка<span class="badge">автотест</span></div><div class="st">Стереть в ссылке из письма несколько последних знаков и открыть <span class="arrow">→</span> «Ссылка устарела…».</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Сколько держится вход, устройства, шапка</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Вернулся на следующий день<span class="badge">автотест</span></div><div class="st">Войти, закрыть браузер, на следующий день открыть приложение <span class="arrow">→</span> внутри.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Заход продлевает вход<span class="badge">автотест</span></div><div class="st">Войти вчера, сегодня открыть приложение и посмотреть срок куки входа в браузере <span class="arrow">→</span> кончается через 30 дней от сегодняшнего захода.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Не заходил 30 дней<span class="badge">автотест</span></div><div class="st">Сдвинуть срок входа командой из задачи 8.6 (консоль базы, <code>update sessions …</code>), обновить страницу <span class="arrow">→</span> страница входа.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Компьютер и телефон<span class="badge">автотест</span></div><div class="st">Войти под одной почтой в обычном окне и в окне инкогнито <span class="arrow">→</span> в обоих внутри, контакты одни и те же.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Почта в шапке<span class="badge">автотест</span></div><div class="st">Войти под <code>anna@example.com</code> <span class="arrow">→</span> на всех страницах в шапке эта почта и «Выйти».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Вышел<span class="badge">автотест</span></div><div class="st">Нажать «Выйти» <span class="arrow">→</span> страница входа; «Назад» в браузере и адрес главной — снова страница входа.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Выход только на этом устройстве<span class="badge">автотест</span></div><div class="st">Войти в двух окнах, в одном нажать «Выйти» <span class="arrow">→</span> во втором по-прежнему внутри.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Свои данные (A — обычное окно, B — инкогнито)</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Чужого нет в списке<span class="badge">автотест</span></div><div class="st">A добавил «Анна Смирнова», B вошёл <span class="arrow">→</span> у B её нет, счётчик считает только его контакты.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Чужого нет в поиске<span class="badge">автотест</span></div><div class="st">B ищет «Анна» <span class="arrow">→</span> «Никого не нашли по запросу «Анна»».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Чужих групп не видно<span class="badge">автотест</span></div><div class="st">У A есть «Теннис». B открывает «Группы», фильтр на главной и форму «Добавить контакт» <span class="arrow">→</span> «Теннис» нигде нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Чужой просроченный не виден<span class="badge">автотест</span></div><div class="st">У A есть с кем пора связаться, у B — нет <span class="arrow">→</span> у B нет блока «Пора связаться».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Чужой контакт по прямой ссылке<span class="badge">автотест</span></div><div class="st">A копирует адрес карточки своего контакта, B его открывает <span class="arrow">→</span> «Контакт не найден» и «Ко всем контактам», ничего от контакта A не видно.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Несуществующий контакт<span class="badge">автотест</span></div><div class="st">Изменить в адресе карточки пару знаков <span class="arrow">→</span> «Контакт не найден», та же страница.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ссылка с фильтром по чужой группе<span class="badge">автотест</span></div><div class="st">A выбирает фильтр «Теннис» и копирует адрес, B открывает <span class="arrow">→</span> у B выбрано «Все», только его контакты.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Заметка из старой вкладки<span class="badge">автотест</span></div><div class="st">В окне A открыть карточку; в другой вкладке того же окна выйти и войти как B; в старой вкладке добавить заметку <span class="arrow">→</span> «Этот контакт больше не существует.», у A заметки не прибавилось.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Группа из старой вкладки<span class="badge">автотест</span></div><div class="st">То же со страницей «Группы»: в старой вкладке переименовать группу A <span class="arrow">→</span> «Эта группа больше не существует.», у A название прежнее.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Первый вход нового пользователя<span class="badge">автотест</span></div><div class="st">B входит впервые <span class="arrow">→</span> «0 контактов» и блок «Здесь пока никого нет»; блока «Пора связаться» нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустой список<span class="badge">автотест</span></div><div class="st">Без единого контакта открыть главную <span class="arrow">→</span> блок «Здесь пока никого нет», подсказка «Добавьте первого человека, о ком не хочется забыть.», кнопка «Добавить контакт» в блоке; наверху кнопки нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Кнопка в пустом списке<span class="badge">автотест</span></div><div class="st">Нажать «Добавить контакт» в белом блоке, ввести «Анна Смирнова», сохранить <span class="arrow">→</span> в списке «Анна Смирнова», «1 контакт», белого блока нет, наверху появилась кнопка «Добавить контакт».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Удалил последний контакт<span class="badge">автотест</span></div><div class="st">Удалить единственный контакт и не нажимать «Отменить» <span class="arrow">→</span> снова белый блок с кнопкой, наверху кнопки нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Поиск без результатов<span class="badge">автотест</span></div><div class="st">Когда контакты есть, найти имя, которого нет <span class="arrow">→</span> «Никого не нашли по запросу «…»», кнопка наверху на месте, белого блока нет.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Ваши данные после выкатки и демо-данные</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Мои данные после выкатки<span class="badge">автотест</span></div><div class="st">До выкатки запомнить число на главной (например, «1&nbsp;002 контакта»), после выкатки войти под почтой из <code>OWNER_EMAIL</code> <span class="arrow">→</span> то же число, заметки, группы с теми же людьми, тот же блок «Пора связаться».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Почта владельца с большими буквами<span class="badge">автотест</span></div><div class="st">В <code>OWNER_EMAIL</code> есть большие буквы, входите маленькими <span class="arrow">→</span> все прежние данные на месте.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Забыл настройку<span class="badge">автотест</span></div><div class="st">На копии базы с контактами запустить миграции без <code>OWNER_EMAIL</code> <span class="arrow">→</span> остановка с сообщением про <code>OWNER_EMAIL</code>, данные как были, прежняя версия открывается.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Демо-данные в пустой базе<span class="badge">автотест</span></div><div class="st">В пустой базе создать демо-данные, войти под почтой владельца <span class="arrow">→</span> 1&nbsp;000 контактов с заметками, часть в группах; B видит пустой список.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">У владельца уже есть контакты<span class="badge">автотест</span></div><div class="st">Снова создать демо-данные <span class="arrow">→</span> ничего не добавилось, команда пишет, что пропущено.</div></div></label>
+</div>
+
+<div class="check-group">
+  <h3>Группы</h3>
+  <label class="check"><input type="checkbox"><div><div class="sc">Группы после выкатки<span class="badge">автотест</span></div><div class="st">Владелец открывает «Группы» сразу после выкатки групп <span class="arrow">→</span> пять групп, у каждой «0 человек». Сценарий прежний, теперь про владельца.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Старые контакты без групп<span class="badge">автотест</span></div><div class="st">Сразу после выкатки групп карточка старого контакта <span class="arrow">→</span> «Группы: не указано». Сценарий прежний.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Группы владельца после выкатки входа<span class="badge">автотест</span></div><div class="st">После выкатки войти под почтой владельца, открыть «Группы» <span class="arrow">→</span> те же группы, что до выкатки, то же число людей.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Новый пользователь без групп<span class="badge">автотест</span></div><div class="st">B впервые открывает «Группы» и форму «Добавить контакт» <span class="arrow">→</span> «Групп пока нет. Нажмите «Создать группу».», в форме — что групп пока нет.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Новая группа<span class="badge">автотест</span></div><div class="st">«Создать группу» → «Работа» → сохранить <span class="arrow">→</span> «Работа · 0 человек», она в фильтре и в форме контакта.</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Пустое название<span class="badge">автотест</span></div><div class="st">Сохранить без названия или из пробелов <span class="arrow">→</span> «Укажите название».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Такая группа уже есть<span class="badge">автотест</span></div><div class="st">У вас есть «Семья», создать «семья» <span class="arrow">→</span> «Такая группа уже есть».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Ёлки и Елки<span class="badge">автотест</span></div><div class="st">У вас есть «Ёлки», создать «Елки» <span class="arrow">→</span> «Такая группа уже есть».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Слишком длинное название<span class="badge">автотест</span></div><div class="st">Название длиннее 50 символов <span class="arrow">→</span> «Название слишком длинное — до 50 символов».</div></div></label>
+  <label class="check"><input type="checkbox"><div><div class="sc">Такая же группа у другого пользователя<span class="badge">автотест</span></div><div class="st">У A есть «Друзья», B создаёт «Друзья» <span class="arrow">→</span> у B своя «Друзья · 0 человек», у A его группа с теми же людьми.</div></div></label>
+</div>
+
+<!-- 6 -->
+<h2><span class="num">6</span>Что агент решил сам</h2>
+<div class="two">
+  <div class="card box-card">
+    <h3>Продуктовые — стоит просмотреть</h3>
+    <ul class="points small">
+      <li>Страница входа — <code>/login</code>, заголовок «Вход в Личную CRM». После отправки форма остаётся, сообщение под ней.</li>
+      <li>В сообщении почта показана без пробелов и маленькими буквами.</li>
+      <li>Пустая почта — та же ошибка «Проверьте адрес почты».</li>
+      <li>Новый текст «Не удалось отправить письмо. Попробуйте ещё раз.» — в спеке его не было.</li>
+      <li>После входа — всегда главная, а не страница, которую открывали без входа.</li>
+      <li>Вошедший на странице входа попадает на главную.</li>
+      <li>Любая неработающая ссылка — одна страница «Ссылка устарела…», кнопка «Получить новую ссылку».</li>
+      <li>Лимит на почту — скользящие 10 минут. Отказы не считаются, неудачная отправка считается.</li>
+      <li>Лимит с адреса в интернете — 10 писем за последние 60 минут (сам лимит решили вы, способ счёта — агент).</li>
+      <li>Вход продлевается при заходе, но не чаще раза в час.</li>
+      <li>Без входа открываются только вход, «Ссылка устарела» и <code>/health</code>.</li>
+      <li>Длинная почта в шапке на телефоне обрезается многоточием.</li>
+      <li>Адрес отправителя — настройка <code>MAIL_FROM</code>.</li>
+      <li>«Хотя бы один контакт» — все ваши контакты, а не найденные поиском: при пустом поиске кнопка наверху остаётся.</li>
+      <li>Удалили последний контакт — снова белый блок с кнопкой.</li>
+      <li>Макеты до кода, как в прошлых фичах.</li>
+    </ul>
+  </div>
+  <div class="card box-card">
+    <h3>Технические — на экраны не влияют</h3>
+    <ul class="points small">
+      <li>Таблицы входа во множественном числе, как наши: <code>users</code>, <code>sessions</code>, <code>accounts</code>, <code>verifications</code>.</li>
+      <li>В базе хранится отпечаток ссылки, а не сама ссылка.</li>
+      <li>Лимиты — своя таблица в базе, не сбрасываются при перезапуске. Встроенный лимит Better Auth выключен: он мешал бы автотестам.</li>
+      <li>Пользователя с данными база удалить не даст.</li>
+      <li>Три миграции вместо одной: данные владельцу — отдельной, её легко показать вам.</li>
+      <li><code>pnpm db:migrate</code> переходит на тот же скрипт, что на сервере.</li>
+      <li>Вход проверяется дважды: перед каждой страницей (это же продлевает вход в браузере) и в каждой странице и действии.</li>
+      <li>Адрес в интернете берётся из заголовка, который ставит nginx: подделать снаружи нельзя.</li>
+      <li>Vitest входит через тестовый помощник Better Auth. Подменяются только две служебные части Next.js. База и письма в тестах настоящие.</li>
+      <li>e2e всегда входит через настоящую форму и письмо из Mailpit.</li>
+      <li>Ключ входа в CI создаётся заново на каждый запуск.</li>
+      <li>Новые библиотеки — только из спеки: <code>better-auth</code>, <code>nodemailer</code>. Mailpit — образ Docker.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 7 -->
+<h2><span class="num">7</span>Что осталось неясным</h2>
+<div class="card">
+  <p><b>Неясного не осталось.</b></p>
+  <p class="small">Последний вопрос — адрес отправителя — вы закрыли 2026-11-03: на сервере <code>noreply@mail.percrm.ru</code>, на компьютере <code>v.danil903@gmail.com</code>. Тогда же решили: в пустом списке кнопка «Добавить контакт» одна — в белом блоке, а наверху она появляется с первым контактом.</p>
+</div>
+
+<footer>Собрано по <code>openspec/changes/login/</code>: proposal.md, три спеки, design.md, tasks.md. Кода и макетов ещё нет. Страница только показывает, ничего не меняет.</footer>
+</div>
+</body>
+</html>

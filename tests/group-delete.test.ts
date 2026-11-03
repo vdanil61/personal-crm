@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { deleteGroup, restoreGroup } from "@/app/actions";
 import { getDb } from "@/db";
@@ -8,23 +8,31 @@ import { listContactGroups, listGroups } from "@/lib/groups";
 import type { GroupSnapshot } from "@/lib/validation";
 
 import { addContact, addGroup, findGroupId, putInGroup } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
 
-const groupNames = async () => (await listGroups()).map((group) => group.name);
-const tennis = async () => (await listGroups()).find((group) => group.name === "Теннис");
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
+
+const groupNames = async () => (await listGroups(user.id)).map((group) => group.name);
+const tennis = async () => (await listGroups(user.id)).find((group) => group.name === "Теннис");
 
 // "Теннис" with three people, as in the scenarios
 async function tennisWithThreePeople() {
   const people = [];
   for (const name of ["Анна", "Борис", "Вера"]) {
-    const contact = await addContact(name);
-    await putInGroup(contact.id, "Теннис");
+    const contact = await addContact(user.id, name);
+    await putInGroup(user.id, contact.id, "Теннис");
     people.push(contact);
   }
   return people;
 }
 
 async function deleteTennis(): Promise<GroupSnapshot> {
-  const result = await deleteGroup(await findGroupId("Теннис"));
+  const result = await deleteGroup(await findGroupId(user.id, "Теннис"));
   if (result.status !== "success") throw new Error(`Test setup: delete failed: ${result.message}`);
   return result.snapshot;
 }
@@ -33,19 +41,19 @@ describe("Удалить группу", () => {
   it("Удалил группу с людьми", async () => {
     const people = await tennisWithThreePeople();
 
-    const result = await deleteGroup(await findGroupId("Теннис"));
+    const result = await deleteGroup(await findGroupId(user.id, "Теннис"));
 
     expect(result).toMatchObject({ status: "success" });
     // Gone from the list (and so from the filter and the contact form), the people are still here
     expect(await groupNames()).toEqual(["Аналитики", "Друзья", "Знакомые", "Семья"]);
     expect(await getDb().select({ id: contacts.id }).from(contacts)).toHaveLength(3);
     for (const person of people) {
-      expect(await listContactGroups(person.id)).toEqual([]);
+      expect(await listContactGroups(user.id, person.id)).toEqual([]);
     }
   });
 
   it("Группа уже удалена в другой вкладке", async () => {
-    const groupId = await findGroupId("Теннис");
+    const groupId = await findGroupId(user.id, "Теннис");
     await getDb().delete(groups).where(eq(groups.id, groupId));
 
     const result = await deleteGroup(groupId);
@@ -57,7 +65,7 @@ describe("Удалить группу", () => {
 describe("Отмена удаления группы", () => {
   it("Удалил и вернул группу", async () => {
     const people = await tennisWithThreePeople();
-    const groupId = await findGroupId("Теннис");
+    const groupId = await findGroupId(user.id, "Теннис");
     const snapshot = await deleteTennis();
 
     const result = await restoreGroup(snapshot);
@@ -66,7 +74,7 @@ describe("Отмена удаления группы", () => {
     // The same group (same id) with the same three people
     expect(await tennis()).toMatchObject({ id: groupId, peopleCount: 3 });
     for (const person of people) {
-      expect(await listContactGroups(person.id)).toEqual([{ id: groupId, name: "Теннис" }]);
+      expect(await listContactGroups(user.id, person.id)).toEqual([{ id: groupId, name: "Теннис" }]);
     }
   });
 
@@ -95,7 +103,7 @@ describe("Отмена удаления группы", () => {
   it("За это время создали группу с тем же названием — понятная ошибка", async () => {
     await tennisWithThreePeople();
     const snapshot = await deleteTennis();
-    const newcomer = await addGroup("теннис");
+    const newcomer = await addGroup(user.id, "теннис");
 
     const result = await restoreGroup(snapshot);
 
@@ -104,7 +112,7 @@ describe("Отмена удаления группы", () => {
       message: "Не удалось вернуть группу: группа «Теннис» уже есть.",
     });
     // The new group stays as it was; the old one did not come back
-    expect((await listGroups()).filter((group) => group.name.toLowerCase() === "теннис")).toEqual([
+    expect((await listGroups(user.id)).filter((group) => group.name.toLowerCase() === "теннис")).toEqual([
       { id: newcomer.id, name: "теннис", peopleCount: 0 },
     ]);
   });

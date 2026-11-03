@@ -4,7 +4,8 @@ import { getDatabaseUrl } from "../../src/db/url";
 // Playwright on `<name>_e2e`. The data in the working database is never touched,
 // and the two kinds of tests can run at the same time.
 
-export type TestSuite = "test" | "e2e";
+// `test_migration` is the database of the migration test: it is recreated from nothing for every test
+export type TestSuite = "test" | "e2e" | "test_migration";
 
 function withDatabase(name: string): string {
   const url = new URL(getDatabaseUrl());

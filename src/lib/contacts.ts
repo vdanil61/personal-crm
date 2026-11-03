@@ -35,7 +35,7 @@ export type ContactListPage = {
   query: string;
   // The filter by groups the list was made with
   filter: GroupFilter;
-  // All contacts in the database, and how many of them match the query and the filter
+  // All contacts of the user, and how many of them match the query and the filter
   total: number;
   matched: number;
   // Starts at 1; a page past the end shows the last one
@@ -53,21 +53,25 @@ function nameMatches(queryWords: string[]): SQL | undefined {
 }
 
 export async function listContactsPage(
+  userId: string,
   query: string,
   page: number,
   pageSize: PageSize,
   filter: GroupFilter = ALL_GROUPS,
 ): Promise<ContactListPage> {
   const db = getDb();
+  const own = eq(contacts.userId, userId);
   // The search and the filter work together: a contact has to pass both
-  const where = and(nameMatches(toQueryWords(query)), groupFilterCondition(filter));
+  const narrowing = and(nameMatches(toQueryWords(query)), groupFilterCondition(filter));
+  const where = and(own, narrowing);
 
   const [counts] = await db
     .select({
       total: count(),
-      matched: where ? sql<number>`count(*) filter (where ${where})`.mapWith(Number) : count(),
+      matched: narrowing ? sql<number>`count(*) filter (where ${narrowing})`.mapWith(Number) : count(),
     })
-    .from(contacts);
+    .from(contacts)
+    .where(own);
 
   const pageCount = Math.max(1, Math.ceil(counts.matched / pageSize));
   const currentPage = Math.min(page, pageCount);
@@ -89,7 +93,10 @@ export async function listContactsPage(
           .limit(pageSize)
           .offset((currentPage - 1) * pageSize);
 
-  const groupsOfItems = await listGroupsOfContacts(items.map((item) => item.id));
+  const groupsOfItems = await listGroupsOfContacts(
+    userId,
+    items.map((item) => item.id),
+  );
 
   return {
     items: items.map((item) => ({ ...item, groups: groupsOfItems.get(item.id) ?? [] })),
@@ -103,16 +110,31 @@ export async function listContactsPage(
   };
 }
 
+// How many contacts the user has in all; what the search and the filter find does not matter here
+export async function countContacts(userId: string): Promise<number> {
+  const [{ total }] = await getDb().select({ total: count() }).from(contacts).where(eq(contacts.userId, userId));
+  return total;
+}
+
 // The page of the full list (without search) that shows this contact; null if there is no such contact
-export async function findContactPage(id: string, pageSize: PageSize): Promise<number | null> {
+export async function findContactPage(userId: string, id: string, pageSize: PageSize): Promise<number | null> {
   const db = getDb();
-  const [contact] = await db.select({ name: contacts.name }).from(contacts).where(eq(contacts.id, id)).limit(1);
+  const [contact] = await db
+    .select({ name: contacts.name })
+    .from(contacts)
+    .where(and(eq(contacts.id, id), eq(contacts.userId, userId)))
+    .limit(1);
   if (!contact) return null;
 
   const [{ before }] = await db
     .select({ before: count() })
     .from(contacts)
-    .where(sql`(${nameOrder}, ${contacts.id}) < (${contact.name}::text collate ${RU_COLLATION}, ${id}::uuid)`);
+    .where(
+      and(
+        eq(contacts.userId, userId),
+        sql`(${nameOrder}, ${contacts.id}) < (${contact.name}::text collate ${RU_COLLATION}, ${id}::uuid)`,
+      ),
+    );
   return Math.floor(before / pageSize) + 1;
 }
 
@@ -126,7 +148,7 @@ const frequencyInterval = sql`case ${contacts.contactFrequency} ${sql.raw(
 // The last contact is the later of the latest note and the last "Связался";
 // without either the period counts from when the contact was added.
 // With a filter by groups only the people who pass it, the same condition as in the list.
-export async function listOverdueContacts(filter: GroupFilter = ALL_GROUPS): Promise<OverdueContact[]> {
+export async function listOverdueContacts(userId: string, filter: GroupFilter = ALL_GROUPS): Promise<OverdueContact[]> {
   const db = getDb();
   // Uses the notes (contact_id, created_at) index
   const lastNoteAt = sql`(select max(${notes.createdAt}) from ${notes} where ${notes.contactId} = ${contacts.id})`;
@@ -141,7 +163,7 @@ export async function listOverdueContacts(filter: GroupFilter = ALL_GROUPS): Pro
       dueAt: sql`coalesce(${lastContactAt}, ${contacts.createdAt}) + ${frequencyInterval}`.as("due_at"),
     })
     .from(contacts)
-    .where(and(isNotNull(contacts.contactFrequency), groupFilterCondition(filter)))
+    .where(and(eq(contacts.userId, userId), isNotNull(contacts.contactFrequency), groupFilterCondition(filter)))
     .as("with_due");
 
   return db
@@ -156,11 +178,23 @@ export async function listOverdueContacts(filter: GroupFilter = ALL_GROUPS): Pro
     .orderBy(withDue.dueAt, sql`${withDue.name} collate ${RU_COLLATION}`, withDue.id);
 }
 
-export async function getContact(id: string) {
-  const [contact] = await getDb().select().from(contacts).where(eq(contacts.id, id)).limit(1);
+// null for a contact that does not exist and for a contact of another user: the two look the same
+export async function getContact(userId: string, id: string) {
+  const [contact] = await getDb()
+    .select()
+    .from(contacts)
+    .where(and(eq(contacts.id, id), eq(contacts.userId, userId)))
+    .limit(1);
   return contact ?? null;
 }
 
-export async function listNotes(contactId: string) {
-  return getDb().select().from(notes).where(eq(notes.contactId, contactId)).orderBy(desc(notes.createdAt));
+// The notes belong to the owner of the contact: nothing for a contact of another user
+export async function listNotes(userId: string, contactId: string) {
+  const rows = await getDb()
+    .select({ note: notes })
+    .from(notes)
+    .innerJoin(contacts, eq(contacts.id, notes.contactId))
+    .where(and(eq(notes.contactId, contactId), eq(contacts.userId, userId)))
+    .orderBy(desc(notes.createdAt));
+  return rows.map((row) => row.note);
 }
