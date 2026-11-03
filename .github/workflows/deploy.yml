@@ -58,10 +58,12 @@ jobs:
           known-hosts: ${{ vars.DEPLOY_KNOWN_HOSTS }}
           private-key: ${{ secrets.DEPLOY_SSH_KEY }}
 
-      - name: Copy deploy scripts to the server
-        run: scp deploy/compose.yaml deploy/.env.example deploy/deploy.sh deploy/rollback.sh deploy/seed.sh server:personal-crm/
+      # The whole folder, so a new script in deploy/ reaches the server by itself.
+      # --no-overwrite-dir keeps the permissions of the server folder; .env there is never touched.
+      - name: Copy deploy/ to the server
+        run: tar -C deploy --exclude=.env -cf - . | ssh server 'tar -C personal-crm --no-overwrite-dir -xf -'
 
-      - name: Deploy (migrations, new version, smoke /health)
+      - name: Deploy (backup, migrations, new version, smoke /health)
         env:
           IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
           REGISTRY_USER: ${{ github.actor }}
