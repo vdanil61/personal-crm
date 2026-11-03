@@ -1,10 +1,19 @@
 import { type Page, expect, test } from "@playwright/test";
 
-import { addContacts, closeDb, resetDb } from "./support/db";
+import { signIn } from "./support/auth";
+import { addContacts, addUser, closeDb, resetDb } from "./support/db";
+import { mailbox } from "./support/mailpit";
 
 // The main scenario and its success criteria from specs/01-продуктовая-идея.md
 
-test.beforeEach(resetDb);
+const EMAIL = mailbox.testEmail("owner");
+let userId: string;
+
+test.beforeEach(async ({ page }) => {
+  await resetDb();
+  userId = (await addUser(EMAIL)).id;
+  await signIn(page, EMAIL);
+});
 test.afterAll(closeDb);
 
 // Rows of the contact list, in the order they are shown
@@ -21,7 +30,7 @@ test.describe("Главный сценарий", () => {
     page,
     browser,
   }) => {
-    await addContacts("Вера Соколова", "Алексей Иванов", "Борис Петров");
+    await addContacts(userId, "Вера Соколова", "Алексей Иванов", "Борис Петров");
     const name = "Дарья Кузнецова";
     const note = "Созвонились, договорились встретиться в пятницу и обсудить поездку";
 
@@ -81,10 +90,12 @@ test.describe("Главный сценарий", () => {
     });
 
     await test.step("открыл тот же адрес в другом браузере → тот же контакт и те же контакты", async () => {
-      // A new context shares nothing with the first one, like another browser: no cookies, no storage, no cache
+      // A new context shares nothing with the first one, like another browser: no cookies, no storage, no cache.
+      // The other browser signs in under the same email
       const otherBrowser = await browser.newContext();
       try {
         const other = await otherBrowser.newPage();
+        await signIn(other, EMAIL);
 
         await other.goto(page.url());
         await expect(other.getByRole("heading", { level: 1 })).toHaveText(name);

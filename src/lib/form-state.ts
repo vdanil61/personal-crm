@@ -48,3 +48,17 @@ export type DeleteGroupResult = { status: "success"; snapshot: GroupSnapshot } |
 export type RestoreGroupResult = { status: "success" } | { status: "error"; message: string };
 
 export type MarkContactedResult = { status: "success" } | { status: "error"; message: string };
+
+// The login form: "sent" keeps the address the email really went to (trimmed, in lower case)
+export type LoginFormState =
+  | { status: "idle" }
+  | { status: "sent"; email: string; sentAt: number }
+  | {
+      status: "error";
+      // "email" is shown under the field, "form" under the button
+      field: "email" | "form";
+      // As typed, so the field keeps its text
+      email: string;
+      message: string;
+      attempt: number;
+    };

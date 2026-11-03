@@ -16,6 +16,12 @@ x-app: &app
     POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
     POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    # Login: all required, so a forgotten line stops the deploy before anything changes
+    OWNER_EMAIL: ${OWNER_EMAIL:?set OWNER_EMAIL in .env}
+    BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
+    BETTER_AUTH_URL: ${BETTER_AUTH_URL:?set BETTER_AUTH_URL in .env}
+    SMTP_URL: ${SMTP_URL:?set SMTP_URL in .env}
+    MAIL_FROM: ${MAIL_FROM:?set MAIL_FROM in .env}
   depends_on:
     db:
       condition: service_healthy

@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createContact, updateContact } from "@/app/actions";
 import { getDb } from "@/db";
@@ -7,6 +7,14 @@ import { contacts, groups } from "@/db/schema";
 import { listContactGroups } from "@/lib/groups";
 
 import { addContact, findGroupId, putInGroup } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
+
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
 
 const idle = { status: "idle" } as const;
 
@@ -19,7 +27,7 @@ function contactForm({ name = "Анна Смирнова", groupIds = [] }: { na
 }
 
 async function groupNamesOf(contactId: string) {
-  return (await listContactGroups(contactId)).map((group) => group.name);
+  return (await listContactGroups(user.id, contactId)).map((group) => group.name);
 }
 
 async function savedContactId(result: Awaited<ReturnType<typeof createContact>>) {
@@ -29,7 +37,7 @@ async function savedContactId(result: Awaited<ReturnType<typeof createContact>>)
 
 describe("Группы в форме контакта", () => {
   it("Добавить контакт сразу в две группы", async () => {
-    const groupIds = [await findGroupId("Друзья"), await findGroupId("Теннис")];
+    const groupIds = [await findGroupId(user.id, "Друзья"), await findGroupId(user.id, "Теннис")];
 
     const result = await createContact(idle, contactForm({ groupIds }));
 
@@ -37,20 +45,24 @@ describe("Группы в форме контакта", () => {
   });
 
   it("Убрать группу в форме изменения", async () => {
-    const contact = await addContact("Анна Смирнова");
-    await putInGroup(contact.id, "Друзья");
-    await putInGroup(contact.id, "Теннис");
+    const contact = await addContact(user.id, "Анна Смирнова");
+    await putInGroup(user.id, contact.id, "Друзья");
+    await putInGroup(user.id, contact.id, "Теннис");
 
     // "Теннис" is unticked: the form sends only "Друзья"
-    const result = await updateContact(contact.id, idle, contactForm({ groupIds: [await findGroupId("Друзья")] }));
+    const result = await updateContact(
+      contact.id,
+      idle,
+      contactForm({ groupIds: [await findGroupId(user.id, "Друзья")] }),
+    );
 
     expect(result).toMatchObject({ status: "success" });
     expect(await groupNamesOf(contact.id)).toEqual(["Друзья"]);
   });
 
   it("Снять все группы в форме изменения", async () => {
-    const contact = await addContact("Анна Смирнова");
-    await putInGroup(contact.id, "Друзья");
+    const contact = await addContact(user.id, "Анна Смирнова");
+    await putInGroup(user.id, contact.id, "Друзья");
 
     await updateContact(contact.id, idle, contactForm());
 
@@ -58,7 +70,7 @@ describe("Группы в форме контакта", () => {
   });
 
   it("Ошибка в форме не сбрасывает группы", async () => {
-    const familyId = await findGroupId("Семья");
+    const familyId = await findGroupId(user.id, "Семья");
 
     const result = await createContact(idle, contactForm({ name: "", groupIds: [familyId] }));
 
@@ -70,7 +82,7 @@ describe("Группы в форме контакта", () => {
     expect(await getDb().select({ id: contacts.id }).from(contacts)).toHaveLength(0);
 
     // The same on the "Изменить" form
-    const contact = await addContact("Анна Смирнова");
+    const contact = await addContact(user.id, "Анна Смирнова");
     const updateResult = await updateContact(contact.id, idle, contactForm({ name: " ", groupIds: [familyId] }));
     expect(updateResult).toMatchObject({ status: "error", values: { groupIds: [familyId] } });
     expect(await groupNamesOf(contact.id)).toEqual([]);
@@ -85,21 +97,21 @@ describe("Группы в форме контакта", () => {
   });
 
   it("Группу удалили, пока форма была открыта — контакт сохраняется без неё", async () => {
-    const tennisId = await findGroupId("Теннис");
-    const friendsId = await findGroupId("Друзья");
+    const tennisId = await findGroupId(user.id, "Теннис");
+    const friendsId = await findGroupId(user.id, "Друзья");
     await getDb().delete(groups).where(eq(groups.id, tennisId));
 
     const created = await createContact(idle, contactForm({ groupIds: [friendsId, tennisId] }));
     expect(await groupNamesOf(await savedContactId(created))).toEqual(["Друзья"]);
 
-    const contact = await addContact("Борис Медведев");
+    const contact = await addContact(user.id, "Борис Медведев");
     const updated = await updateContact(contact.id, idle, contactForm({ groupIds: [tennisId] }));
     expect(updated).toMatchObject({ status: "success" });
     expect(await groupNamesOf(contact.id)).toEqual([]);
   });
 
   it("Одна группа дважды в запросе не мешает", async () => {
-    const friendsId = await findGroupId("Друзья");
+    const friendsId = await findGroupId(user.id, "Друзья");
 
     const result = await createContact(idle, contactForm({ groupIds: [friendsId, friendsId] }));
 

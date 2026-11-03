@@ -9,8 +9,9 @@ import { PageSizePicker } from "@/components/contacts/page-size-picker";
 import { GroupFilterBar } from "@/components/groups/group-filter-bar";
 import { GroupsLink } from "@/components/groups/groups-link";
 import { Skeleton } from "@/components/ui/skeleton";
+import { requireUser } from "@/lib/auth/session";
 import { formatOverdueCaption } from "@/lib/contact-frequency";
-import { findContactPage, listContactsPage, listOverdueContacts } from "@/lib/contacts";
+import { countContacts, findContactPage, listContactsPage, listOverdueContacts } from "@/lib/contacts";
 import { formatCount, pluralWord, pluralize } from "@/lib/format";
 import { listGroups, resolveGroupFilter } from "@/lib/groups";
 import {
@@ -70,18 +71,27 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
 }
 
 // The groups are needed by the filter and by the form of a new contact: one query per request
-const loadGroups = cache(listGroups);
+const loadGroups = cache(async () => listGroups((await requireUser()).id));
 
 async function GroupFilter({ searchParams }: { searchParams: SearchParams }) {
   const { groupsParam } = await readListParams(searchParams);
-  const [groups, filter] = await Promise.all([loadGroups(), resolveGroupFilter(groupsParam)]);
+  const user = await requireUser();
+  const [groups, filter] = await Promise.all([loadGroups(), resolveGroupFilter(user.id, groupsParam)]);
   return <GroupFilterBar groups={groups.map(({ id, name }) => ({ id, name }))} filter={filter} />;
 }
 
-// The form of a new contact offers the groups, so they come from the server with the button
+// The button on top of the page is there only for someone who has contacts; with none, the button is in the empty list.
+// All contacts of the user count, not the ones a search or a filter found.
 async function AddContact() {
   // Read at request time, never from a build-time prerender: the build has no database
   await connection();
+  const user = await requireUser();
+  if ((await countContacts(user.id)) === 0) return null;
+  return <AddContactButton />;
+}
+
+// The form of a new contact offers the groups, so they come from the server with the button
+async function AddContactButton() {
   const groups = await loadGroups();
   return <AddContactDialog groups={groups.map(({ id, name }) => ({ id, name }))} />;
 }
@@ -108,13 +118,14 @@ async function readListParams(searchParams: SearchParams) {
 // cache() makes them share one set of database queries per request
 const loadContactList = cache(
   async (query: string, page: number, size: PageSize, addedId: string | null, groupsParam: string) => {
+    const user = await requireUser();
     // A contact was just added: open the full list (no search, no filter) on the page with it,
     // the list highlights it
     if (addedId) {
-      const addedPage = await findContactPage(addedId, size);
-      if (addedPage) return listContactsPage("", addedPage, size);
+      const addedPage = await findContactPage(user.id, addedId, size);
+      if (addedPage) return listContactsPage(user.id, "", addedPage, size);
     }
-    return listContactsPage(query, page, size, await resolveGroupFilter(groupsParam));
+    return listContactsPage(user.id, query, page, size, await resolveGroupFilter(user.id, groupsParam));
   },
 );
 
@@ -124,7 +135,8 @@ async function KeepInTouch({ searchParams }: { searchParams: SearchParams }) {
   if (query.trim()) return null;
 
   // With a filter by groups the block shows (and counts) only the people who pass it
-  const overdue = await listOverdueContacts(await resolveGroupFilter(groupsParam));
+  const user = await requireUser();
+  const overdue = await listOverdueContacts(user.id, await resolveGroupFilter(user.id, groupsParam));
   if (overdue.length === 0) return null;
 
   const now = new Date();
@@ -164,6 +176,7 @@ async function ContactList({ searchParams }: { searchParams: SearchParams }) {
   const list = await loadContactList(query, page, size, addedId, groupsParam);
   return (
     <ContactBrowser
+      addContactButton={list.total === 0 ? <AddContactButton /> : null}
       contacts={list.items}
       total={list.total}
       query={list.query}

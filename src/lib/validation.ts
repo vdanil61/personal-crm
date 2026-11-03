@@ -85,3 +85,7 @@ export const groupSnapshotSchema = z.object({
 });
 
 export type GroupSnapshot = z.output<typeof groupSnapshotSchema>;
+
+// The email of the login form. The same rules for the form and for a request that did not come from it:
+// spaces at the edges are dropped, capital letters do not matter (`Anna@Example.com` is `anna@example.com`).
+export const loginEmailSchema = z.string().trim().toLowerCase().max(254).pipe(z.email());

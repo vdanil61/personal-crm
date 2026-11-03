@@ -1,10 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import { createContact, updateContact } from "@/app/actions";
 import { frequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listOverdueContacts } from "@/lib/contacts";
 
 import { addContact, addNote } from "./support/factories";
+import { type TestUser, signInWithGroups } from "./support/auth";
+import { testEmail } from "./support/mailpit";
+
+let user: TestUser;
+
+beforeEach(async () => {
+  user = await signInWithGroups(testEmail("owner"));
+});
 
 const idle = { status: "idle" } as const;
 const DAY = 24 * 60 * 60 * 1000;
@@ -25,12 +33,12 @@ async function savedContactId(result: Awaited<ReturnType<typeof createContact>>)
 
 // What the card shows in the "Как часто общаться" row; null is "не указано"
 async function cardFrequency(contactId: string) {
-  const contact = await getContact(contactId);
+  const contact = await getContact(user.id, contactId);
   if (!contact) throw new Error("Test setup: no such contact");
   return contact.contactFrequency && frequencyLabels[contact.contactFrequency];
 }
 
-const overdueNames = async () => (await listOverdueContacts()).map((c) => c.name);
+const overdueNames = async () => (await listOverdueContacts(user.id)).map((c) => c.name);
 
 describe("Частота общения задаётся в форме контакта", () => {
   it("Задать частоту при добавлении контакта", async () => {
@@ -46,7 +54,7 @@ describe("Частота общения задаётся в форме конт�
   });
 
   it("Поменять частоту", async () => {
-    const contact = await addContact("Анна Смирнова", { contactFrequency: "month" });
+    const contact = await addContact(user.id, "Анна Смирнова", { contactFrequency: "month" });
 
     const result = await updateContact(contact.id, idle, contactForm({ frequency: "week" }));
 
@@ -55,7 +63,7 @@ describe("Частота общения задаётся в форме конт�
   });
 
   it("Убрать частоту", async () => {
-    const contact = await addContact("Анна Смирнова", { contactFrequency: "month", createdAt: daysAgo(40) });
+    const contact = await addContact(user.id, "Анна Смирнова", { contactFrequency: "month", createdAt: daysAgo(40) });
     expect(await overdueNames()).toEqual(["Анна Смирнова"]);
 
     const result = await updateContact(contact.id, idle, contactForm());
@@ -67,13 +75,13 @@ describe("Частота общения задаётся в форме конт�
 
   it("Старые контакты после обновления приложения", async () => {
     // Contacts as they were before the feature: added long ago, with old notes, nothing else
-    const anna = await addContact("Анна Смирнова", { createdAt: daysAgo(400) });
+    const anna = await addContact(user.id, "Анна Смирнова", { createdAt: daysAgo(400) });
     await addNote(anna.id, daysAgo(365));
-    const boris = await addContact("Борис Медведев", { createdAt: daysAgo(100) });
+    const boris = await addContact(user.id, "Борис Медведев", { createdAt: daysAgo(100) });
 
     for (const contact of [anna, boris]) {
       expect(await cardFrequency(contact.id)).toBeNull();
-      expect((await getContact(contact.id))?.lastContactedAt).toBeNull();
+      expect((await getContact(user.id, contact.id))?.lastContactedAt).toBeNull();
     }
     expect(await overdueNames()).toEqual([]);
   });

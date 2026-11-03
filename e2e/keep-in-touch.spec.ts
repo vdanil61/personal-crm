@@ -1,12 +1,33 @@
 import { type Locator, type Page, expect, test } from "@playwright/test";
 
-import { addContact, addNote, closeDb, putInGroup, resetDb } from "./support/db";
+import { signIn } from "./support/auth";
+import {
+  addUser,
+  addContact as addContactOf,
+  addNote,
+  closeDb,
+  putInGroup as putInGroupOf,
+  resetDb,
+} from "./support/db";
+import { mailbox } from "./support/mailpit";
 
 // The ways through the "Пора связаться" block from openspec/specs/keep-in-touch/spec.md
 // that only a browser can check; the logic behind the block is covered by the unit tests
 
-test.beforeEach(resetDb);
+// Every scenario starts signed in as the same user, who owns all the data of the scenario
+const EMAIL = mailbox.testEmail("owner");
+let userId: string;
+
+test.beforeEach(async ({ page }) => {
+  await resetDb();
+  userId = (await addUser(EMAIL)).id;
+  await signIn(page, EMAIL);
+});
 test.afterAll(closeDb);
+
+const addContact = (name: string, values: Parameters<typeof addContactOf>[2] = {}) =>
+  addContactOf(userId, name, values);
+const putInGroup = (contactId: string, groupName: string) => putInGroupOf(userId, contactId, groupName);
 
 const DAY = 24 * 60 * 60 * 1000;
 const daysAgo = (days: number) => new Date(Date.now() - days * DAY);
