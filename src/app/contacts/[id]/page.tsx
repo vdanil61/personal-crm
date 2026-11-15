@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { MailIcon, PhoneIcon, RepeatIcon, TagIcon, UsersIcon } from "lucide-react";
+import { CakeIcon, MailIcon, PhoneIcon, RepeatIcon, TagIcon, UsersIcon } from "lucide-react";
 
 import { ContactAvatar } from "@/components/contacts/avatar";
 import { BackToList } from "@/components/contacts/back-to-list";
@@ -10,6 +10,7 @@ import { ContactGroups } from "@/components/groups/contact-groups";
 import { NoteForm } from "@/components/contacts/note-form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth/session";
+import { formatBirthday } from "@/lib/birthdays";
 import { frequencyLabels } from "@/lib/contact-frequency";
 import { getContact, listNotes } from "@/lib/contacts";
 import { formatDateTime, pluralize } from "@/lib/format";
@@ -62,6 +63,9 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
                 phone: contact.phone ?? "",
                 email: contact.email ?? "",
                 contactFrequency: contact.contactFrequency ?? "",
+                birthdayDay: contact.birthdayDay?.toString() ?? "",
+                birthdayMonth: contact.birthdayMonth?.toString() ?? "",
+                birthdayYear: contact.birthdayYear?.toString() ?? "",
                 groupIds: contactGroups.map((group) => group.id),
               }}
             />
@@ -86,6 +90,9 @@ async function ContactDetails({ params }: Pick<PageProps<"/contacts/[id]">, "par
                 {contact.email}
               </a>
             )}
+          </InfoItem>
+          <InfoItem icon={<CakeIcon />} label="Дата рождения">
+            {contact.birthdayDay === null ? null : formatBirthday(contact)}
           </InfoItem>
           <InfoItem icon={<RepeatIcon />} label="Как часто общаться" className="sm:col-span-2">
             {contact.contactFrequency && frequencyLabels[contact.contactFrequency]}

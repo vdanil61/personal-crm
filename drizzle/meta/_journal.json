@@ -50,6 +50,13 @@
       "when": 1793740670952,
       "tag": "0006_owner_required",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794773018133,
+      "tag": "0007_birthdays",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { type SQL, and, count, desc, eq, isNotNull, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { contacts, notes } from "@/db/schema";
+import { birthdayOccurrence, birthdayWindow, type BirthdayOccurrence } from "@/lib/birthdays";
 import { RU_COLLATION } from "@/lib/collation";
 import { type ContactFrequency, frequencyIntervals } from "@/lib/contact-frequency";
 import { ALL_GROUPS, type GroupFilter } from "@/lib/group-filter";
@@ -197,4 +198,37 @@ export async function listNotes(userId: string, contactId: string) {
     .where(and(eq(notes.contactId, contactId), eq(contacts.userId, userId)))
     .orderBy(desc(notes.createdAt));
   return rows.map((row) => row.note);
+}
+
+export type UpcomingBirthday = { id: string; name: string; date: BirthdayOccurrence };
+
+export async function listUpcomingBirthdays(
+  userId: string,
+  filter: GroupFilter = ALL_GROUPS,
+  now: Date = new Date(),
+): Promise<UpcomingBirthday[]> {
+  const window = birthdayWindow(now);
+  const candidates = await getDb()
+    .select({
+      id: contacts.id,
+      name: contacts.name,
+      birthdayDay: contacts.birthdayDay,
+      birthdayMonth: contacts.birthdayMonth,
+    })
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.userId, userId),
+        isNotNull(contacts.birthdayDay),
+        isNotNull(contacts.birthdayMonth),
+        groupFilterCondition(filter),
+      ),
+    )
+    .orderBy(nameOrder, contacts.id);
+  return candidates
+    .flatMap((contact) => {
+      const date = birthdayOccurrence(contact, window);
+      return date ? [{ id: contact.id, name: contact.name, date }] : [];
+    })
+    .sort((a, b) => a.date.offset - b.date.offset);
 }

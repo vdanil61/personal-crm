@@ -1,4 +1,4 @@
-import { type Page, expect } from "@playwright/test";
+import { type Page, type Request, expect } from "@playwright/test";
 
 import { mailbox } from "./mailpit";
 
@@ -13,9 +13,19 @@ export async function signIn(page: Page, email: string) {
 export async function requestLoginLink(page: Page, email: string) {
   await page.goto("/login");
   await page.getByLabel("Почта").fill(email);
-  // A click before the page has come to life submits nothing, so it is repeated until the answer shows
-  await expect(async () => {
-    await page.getByRole("button", { name: "Получить ссылку" }).click();
-    await expect(page.getByText(`Ссылка для входа отправлена на ${email}`)).toBeVisible({ timeout: 2_000 });
-  }).toPass();
+  // Retry a click before hydration, but never send a second request while the first is pending:
+  // it would invalidate the link in the first email on a cold server.
+  let submitted = false;
+  const observeSubmit = (request: Request) => {
+    if (request.method() === "POST" && new URL(request.url()).pathname === "/login") submitted = true;
+  };
+  page.on("request", observeSubmit);
+  try {
+    await expect(async () => {
+      if (!submitted) await page.getByRole("button", { name: "Получить ссылку" }).click();
+      await expect(page.getByText(`Ссылка для входа отправлена на ${email}`)).toBeVisible({ timeout: 2_000 });
+    }).toPass();
+  } finally {
+    page.off("request", observeSubmit);
+  }
 }

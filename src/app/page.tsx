@@ -5,13 +5,21 @@ import { AddContactDialog } from "@/components/contacts/add-contact-dialog";
 import { ContactBrowser } from "@/components/contacts/contact-browser";
 import { ContactSearch } from "@/components/contacts/contact-search";
 import { KeepInTouch as KeepInTouchBlock } from "@/components/contacts/keep-in-touch";
+import { UpcomingBirthdays as UpcomingBirthdaysBlock } from "@/components/contacts/upcoming-birthdays";
 import { PageSizePicker } from "@/components/contacts/page-size-picker";
 import { GroupFilterBar } from "@/components/groups/group-filter-bar";
 import { GroupsLink } from "@/components/groups/groups-link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { requireUser } from "@/lib/auth/session";
+import { formatBirthdayOccurrence } from "@/lib/birthdays";
 import { formatOverdueCaption } from "@/lib/contact-frequency";
-import { countContacts, findContactPage, listContactsPage, listOverdueContacts } from "@/lib/contacts";
+import {
+  countContacts,
+  findContactPage,
+  listContactsPage,
+  listOverdueContacts,
+  listUpcomingBirthdays,
+} from "@/lib/contacts";
 import { formatCount, pluralWord, pluralize } from "@/lib/format";
 import { listGroups, resolveGroupFilter } from "@/lib/groups";
 import {
@@ -48,6 +56,9 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
       </div>
       <Suspense fallback={<Skeleton className="mb-6 h-9 w-full bg-card max-sm:h-11" />}>
         <GroupFilter searchParams={searchParams} />
+      </Suspense>
+      <Suspense>
+        <UpcomingBirthdays searchParams={searchParams} />
       </Suspense>
       {/* Nothing while loading: the block is often absent, a skeleton would flash */}
       <Suspense>
@@ -128,6 +139,25 @@ const loadContactList = cache(
     return listContactsPage(user.id, query, page, size, await resolveGroupFilter(user.id, groupsParam));
   },
 );
+
+async function UpcomingBirthdays({ searchParams }: { searchParams: SearchParams }) {
+  const { query, groupsParam } = await readListParams(searchParams);
+  if (query.trim()) return null;
+
+  const user = await requireUser();
+  const now = new Date();
+  const contacts = await listUpcomingBirthdays(user.id, await resolveGroupFilter(user.id, groupsParam), now);
+  if (contacts.length === 0) return null;
+  return (
+    <UpcomingBirthdaysBlock
+      contacts={contacts.map((contact) => ({
+        id: contact.id,
+        name: contact.name,
+        caption: formatBirthdayOccurrence(contact.date),
+      }))}
+    />
+  );
+}
 
 // Hidden while searching: the found contacts matter then; also hidden when nobody who passes the filter is overdue
 async function KeepInTouch({ searchParams }: { searchParams: SearchParams }) {

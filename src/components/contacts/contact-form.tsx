@@ -30,6 +30,9 @@ const emptyValues: ContactFormValues = {
   phone: "",
   email: "",
   contactFrequency: "",
+  birthdayDay: "",
+  birthdayMonth: "",
+  birthdayYear: "",
   groupIds: [],
 };
 
@@ -37,6 +40,24 @@ const emptyValues: ContactFormValues = {
 const frequencyItems = [
   { value: null, label: "Не задано" },
   ...CONTACT_FREQUENCIES.map((value) => ({ value, label: frequencyOptionLabels[value] })),
+];
+
+const monthItems = [
+  { value: null, label: "Не указан" },
+  ...[
+    "Январь",
+    "Февраль",
+    "Март",
+    "Апрель",
+    "Май",
+    "Июнь",
+    "Июль",
+    "Август",
+    "Сентябрь",
+    "Октябрь",
+    "Ноябрь",
+    "Декабрь",
+  ].map((label, index) => ({ value: String(index + 1), label })),
 ];
 
 // A group as a button you tick: a real checkbox (sent with the form as "groupIds") dressed as a label
@@ -109,6 +130,63 @@ export function ContactForm({ action, groups, initialValues, submitLabel, onSucc
             <FieldError>{errors.email}</FieldError>
           </Field>
         </div>
+        <FieldSet className="gap-2" aria-describedby="birthday-hint birthday-error">
+          <FieldLegend variant="label">Дата рождения</FieldLegend>
+          <p id="birthday-hint" className="text-sm text-muted-foreground">
+            Год необязателен
+          </p>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <Field data-invalid={errors.birthdayDay ? true : undefined}>
+              <FieldLabel htmlFor="contact-birthdayDay">День</FieldLabel>
+              <Input
+                {...fieldProps("birthdayDay")}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={31}
+                step={1}
+                aria-describedby="birthday-error"
+              />
+            </Field>
+            <Field data-invalid={errors.birthdayDay ? true : undefined}>
+              <FieldLabel htmlFor="contact-birthdayMonth">Месяц</FieldLabel>
+              <Select name="birthdayMonth" items={monthItems} defaultValue={values.birthdayMonth || null}>
+                <SelectTrigger
+                  id="contact-birthdayMonth"
+                  aria-invalid={errors.birthdayDay ? true : undefined}
+                  aria-describedby="birthday-error"
+                  className="w-full min-w-0 bg-card px-3 text-base data-[size=default]:h-10 md:text-sm"
+                >
+                  <SelectValue className="truncate" />
+                </SelectTrigger>
+                <SelectContent alignItemWithTrigger={false} className="p-1 shadow-card ring-input">
+                  {monthItems.map((item) => (
+                    <SelectItem
+                      key={item.value ?? "none"}
+                      value={item.value}
+                      className="h-11 px-2.5 text-base md:h-9 md:px-2 md:text-sm data-selected:bg-secondary data-selected:text-secondary-foreground"
+                    >
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field data-invalid={errors.birthdayDay ? true : undefined}>
+              <FieldLabel htmlFor="contact-birthdayYear">Год</FieldLabel>
+              <Input
+                {...fieldProps("birthdayYear")}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={9999}
+                step={1}
+                aria-describedby="birthday-hint birthday-error"
+              />
+            </Field>
+          </div>
+          <FieldError id="birthday-error">{errors.birthdayDay}</FieldError>
+        </FieldSet>
         <Field data-invalid={errors.contactFrequency ? true : undefined}>
           <FieldLabel htmlFor="contact-contactFrequency">Как часто общаться</FieldLabel>
           <Select name="contactFrequency" items={frequencyItems} defaultValue={values.contactFrequency || null}>

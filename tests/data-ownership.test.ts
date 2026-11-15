@@ -320,3 +320,14 @@ describe("Чужое не меняется прямым запросом к се
     ).toEqual([]);
   });
 });
+
+it("B28 rejects a birthday update belonging to another user", async () => {
+  const contact = await addContact(a.id, "Анна", { birthdayDay: 15, birthdayMonth: 11, birthdayYear: 1990 });
+  const result = await updateContact(
+    contact.id,
+    idle,
+    form({ name: "Анна", birthdayDay: "16", birthdayMonth: "12", birthdayYear: "" }),
+  );
+  expect(result).toMatchObject({ status: "error", message: CONTACT_GONE });
+  expect(await contactRow(contact.id)).toEqual(contact);
+});
