@@ -14,7 +14,7 @@ configure_environment() {
   [ "$PWD" = "$app_dir" ] || { echo "Run $environment operations from $app_dir"; exit 1; }
   compose=(docker compose -p "$environment" -f compose.yaml)
 }
-backups_kept=10
+backups_kept=7
 current_step="start"
 
 step() {
@@ -22,10 +22,14 @@ step() {
   printf '\n==> %s\n' "$current_step"
 }
 
-# One deploy or restore at a time, even if someone starts one by hand while CI is deploying
+# One deploy, backup or restore at a time, including manual operations.
 take_lock() {
   exec 9>.deploy.lock
-  flock --nonblock 9 || { echo "Another deploy or restore is running"; exit 1; }
+  if [ "${1:-}" = wait ]; then
+    flock 9
+  else
+    flock --nonblock 9 || { echo "Another deploy, backup or restore is running"; exit 1; }
+  fi
 }
 
 # ghcr.io/vdanil61/personal-crm:<commit sha> -> the first 7 characters of the sha, as GitHub shows commits
@@ -61,9 +65,16 @@ backup_names() {
 }
 
 prune_backups() {
-  backup_names | tail -n +$((backups_kept + 1)) | while read -r name; do
-    rm -f "backups/$name"
-    echo "removed backups/$name"
+  local category
+  # Keep seven daily copies and seven operation copies independently.
+  for category in daily operation; do
+    backup_names | awk -v category="$category" '
+      category == "daily" && /_daily\.dump$/ { print }
+      category == "operation" && !/_daily\.dump$/ { print }
+    ' | tail -n +$((backups_kept + 1)) | while read -r name; do
+      rm -f "backups/$name"
+      echo "removed backups/$name"
+    done
   done
 }
 

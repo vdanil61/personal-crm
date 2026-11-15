@@ -99,7 +99,7 @@ if [ "$backup_version" != "$app_version" ]; then
 
 WARNING: the backup was taken on app version $backup_version, the app now runs $app_version.
 Their tables may differ. Production restore does not run migrations; staging applies its image's migrations.
-Usually you first roll the app back to $backup_version (rollback.sh), then restore.
+Usually you first roll the app back to $backup_version (Deploy prod for production, rollback.sh staging for staging), then restore.
 EOF
 fi
 echo

@@ -8,6 +8,10 @@ cd "$(dirname "$0")"
 source ./lib.sh
 configure_environment "${1:-prod}"
 
+if [ "$environment" = prod ]; then
+  exec ./deploy.sh prod --rollback
+fi
+
 previous="$(cat previous-image 2>/dev/null || true)"
 [ -n "$previous" ] || { echo "No previous version recorded, nothing to roll back to"; exit 1; }
 

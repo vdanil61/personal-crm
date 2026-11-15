@@ -1,0 +1,71 @@
+name: Deploy prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: "Commit SHA (empty: latest successful staging deployment)"
+        type: string
+        required: false
+      rollback:
+        description: "Roll back to the previous production version (ignore SHA)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy production
+    runs-on: ubuntu-latest
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      actions: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Select a successful staging release or rollback
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUESTED_SHA: ${{ inputs.sha }}
+          ROLLBACK: ${{ inputs.rollback }}
+        run: node deploy/select-prod.mjs
+
+      - uses: ./.github/actions/server-ssh
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          known-hosts: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Deploy production (backup, migrations, new version, smoke /health)
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash deploy/run-deploy.sh prod
+
+  cleanup:
+    name: Clean up GHCR images
+    needs: deploy
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ghcr-images
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: main
+
+      - name: Keep the last ten builds in GHCR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node deploy/cleanup-ghcr.mjs

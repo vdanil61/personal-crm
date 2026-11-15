@@ -1,0 +1,13 @@
+[Unit]
+Description=Personal CRM daily production database backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+User=deploy
+Group=deploy
+WorkingDirectory=/home/deploy/personal-crm
+ExecStart=/home/deploy/personal-crm/backup.sh
+UMask=0077
+TimeoutStartSec=infinity
