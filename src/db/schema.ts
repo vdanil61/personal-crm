@@ -1,5 +1,16 @@
 import { sql } from "drizzle-orm";
-import { boolean, check, index, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  check,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { CONTACT_FREQUENCIES } from "../lib/contact-frequency";
 
@@ -106,6 +117,9 @@ export const contacts = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     // How often to keep in touch; null = not set
     contactFrequency: text("contact_frequency", { enum: CONTACT_FREQUENCIES }),
+    birthdayDay: integer("birthday_day"),
+    birthdayMonth: integer("birthday_month"),
+    birthdayYear: integer("birthday_year"),
     // Last click on "Связался"; null = never
     lastContactedAt: timestamp("last_contacted_at", { withTimezone: true }),
   },
@@ -113,6 +127,16 @@ export const contacts = pgTable(
     index("contacts_name_idx").on(table.name),
     index("contacts_user_id_idx").on(table.userId),
     check("contacts_contact_frequency_check", sql`${table.contactFrequency} in (${frequencyList})`),
+    check(
+      "contacts_birthday_check",
+      sql`case
+      when ${table.birthdayDay} is null and ${table.birthdayMonth} is null and ${table.birthdayYear} is null then true
+      when ${table.birthdayDay} is null or ${table.birthdayMonth} is null then false
+      when ${table.birthdayDay} not between 1 and 31 or ${table.birthdayMonth} not between 1 and 12 then false
+      when ${table.birthdayYear} is not null and ${table.birthdayYear} not between 1 and 9999 then false
+      else ${table.birthdayDay} <= extract(day from (make_date(coalesce(${table.birthdayYear}, 2000), ${table.birthdayMonth}, 1) + interval '1 month - 1 day'))
+    end`,
+    ),
   ],
 );
 

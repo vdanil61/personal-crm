@@ -361,6 +361,9 @@ export async function deleteContact(contactId: string): Promise<DeleteContactRes
           updatedAt: contacts.updatedAt,
           contactFrequency: contacts.contactFrequency,
           lastContactedAt: contacts.lastContactedAt,
+          birthdayDay: contacts.birthdayDay,
+          birthdayMonth: contacts.birthdayMonth,
+          birthdayYear: contacts.birthdayYear,
         })
         .from(contacts)
         .where(and(eq(contacts.id, contactId), eq(contacts.userId, user.id)))
