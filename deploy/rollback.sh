@@ -5,9 +5,11 @@
 #   sudo -u deploy /home/deploy/personal-crm/rollback.sh
 set -euo pipefail
 cd "$(dirname "$0")"
+source ./lib.sh
+configure_environment "${1:-prod}"
 
 previous="$(cat previous-image 2>/dev/null || true)"
 [ -n "$previous" ] || { echo "No previous version recorded, nothing to roll back to"; exit 1; }
 
 echo "Rolling back to $previous"
-exec ./deploy.sh "$previous"
+exec ./deploy.sh "$environment" "$previous"

@@ -61,11 +61,44 @@ jobs:
       # The whole folder, so a new script in deploy/ reaches the server by itself.
       # --no-overwrite-dir keeps the permissions of the server folder; .env there is never touched.
       - name: Copy deploy/ to the server
-        run: tar -C deploy --exclude=.env -cf - . | ssh server 'tar -C personal-crm --no-overwrite-dir -xf -'
+        run: tar -C deploy --exclude=.env -cf - . | ssh server 'cd personal-crm && flock --nonblock .deploy.lock tar --no-overwrite-dir -xf -'
 
       - name: Deploy (backup, migrations, new version, smoke /health)
         env:
           IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
           REGISTRY_USER: ${{ github.actor }}
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: printf '%s' "$REGISTRY_TOKEN" | ssh server "personal-crm/deploy.sh $IMAGE $REGISTRY_USER"
+        run: |
+          printf '%s\n%s\n%s' "$IMAGE" "$REGISTRY_USER" "$REGISTRY_TOKEN" |
+            ssh server 'IFS= read -r image && IFS= read -r registry_user && exec personal-crm/deploy.sh prod "$image" "$registry_user"'
+
+  staging:
+    name: Deploy staging
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: staging
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: ./.github/actions/server-ssh
+        with:
+          host: ${{ vars.DEPLOY_HOST }}
+          known-hosts: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Copy deploy/ to staging
+        run: tar -C deploy --exclude=.env -cf - . | ssh server 'cd personal-crm-staging && flock --nonblock .deploy.lock tar --no-overwrite-dir -xf -'
+
+      - name: Deploy staging (migrations, new version, smoke /health)
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s\n%s\n%s' "$IMAGE" "$REGISTRY_USER" "$REGISTRY_TOKEN" |
+            ssh server 'IFS= read -r image && IFS= read -r registry_user && exec personal-crm-staging/deploy.sh staging "$image" "$registry_user"'

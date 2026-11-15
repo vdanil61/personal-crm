@@ -1,15 +1,15 @@
-# Production stack on the server, docker compose project "prod".
-# Lives in /home/deploy/personal-crm next to .env (database settings, chmod 600).
+# Shared server stack, in a separate folder and Compose project for each environment.
 # The app image comes from APP_IMAGE, which deploy.sh sets for every command.
 
 x-logging: &logging
-  driver: json-file
+  driver: journald
   options:
-    max-size: 10m
-    max-file: "3"
+    tag: "{{.Name}}"
 
 x-app: &app
   image: ${APP_IMAGE:?run through deploy.sh, it sets APP_IMAGE}
+  mem_limit: ${APP_MEMORY_LIMIT:-0}
+  memswap_limit: ${APP_MEMORY_LIMIT:-0}
   environment:
     POSTGRES_HOST: db
     POSTGRES_PORT: "5432"
@@ -31,6 +31,8 @@ services:
   db:
     image: postgres:18-alpine
     restart: unless-stopped
+    mem_limit: ${DB_MEMORY_LIMIT:-0}
+    memswap_limit: ${DB_MEMORY_LIMIT:-0}
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
@@ -50,7 +52,7 @@ services:
     restart: unless-stopped
     ports:
       # Only nginx on this server reaches the app; it is not exposed to the internet directly
-      - "127.0.0.1:3000:3000"
+      - "127.0.0.1:${APP_PORT:-3000}:3000"
     healthcheck:
       test:
         [
