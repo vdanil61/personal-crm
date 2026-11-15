@@ -1,12 +1,25 @@
 # Shared by deploy.sh and restore.sh: they cd into this folder and source it. Not run on its own.
 
-compose=(docker compose -p prod -f compose.yaml)
+configure_environment() {
+  environment="$1"
+  case "$environment" in
+    prod) app_dir=/home/deploy/personal-crm; export APP_PORT=3000 APP_MEMORY_LIMIT=0 DB_MEMORY_LIMIT=0 ;;
+    staging)
+      app_dir=/home/deploy/personal-crm-staging
+      export APP_PORT=3001 APP_MEMORY_LIMIT=384m DB_MEMORY_LIMIT=256m
+      export BETTER_AUTH_URL=https://test-app.percrm.ru
+      ;;
+    *) echo "Environment must be prod or staging"; exit 1 ;;
+  esac
+  [ "$PWD" = "$app_dir" ] || { echo "Run $environment operations from $app_dir"; exit 1; }
+  compose=(docker compose -p "$environment" -f compose.yaml)
+}
 backups_kept=10
 current_step="start"
 
 step() {
   current_step="$1"
-  printf '\n==> %s\n' "$1"
+  printf '\n==> %s\n' "$current_step"
 }
 
 # One deploy or restore at a time, even if someone starts one by hand while CI is deploying
@@ -63,7 +76,7 @@ start_app() {
 
 smoke_check() {
   for _ in 1 2 3 4 5 6 7 8 9 10; do
-    if curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3000/health; then
+    if curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:$APP_PORT/health"; then
       echo
       return 0
     fi

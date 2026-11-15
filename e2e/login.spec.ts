@@ -162,6 +162,9 @@ test.describe("Сколько держится вход", () => {
 
   test("Заход продлевает вход", async ({ page }) => {
     await signIn(page, ANNA);
+    // Leave the interactive page before changing time: its background prefetches can renew
+    // the session between aging the database row and replacing the browser cookie.
+    await page.goto("/health");
     // Two days ago: the login in the database and the cookie in the browser both run out in 28 days
     await ageSessions(ANNA, 2);
     const cookie = (await sessionCookie(page))!;
