@@ -19,6 +19,7 @@
 - [x] Configure staging .env with the owner and import a backup by owner-run restore.
 - [x] Deploy staging, verify HTTPS/password/health and complete the owner-run redeployment after correcting the mail sender.
 - [x] Owner confirms successful email login, manual staging actions and unaffected production data after a separate production login.
+- [x] Fix the existing session-expiry e2e setup so background page prefetches cannot race with artificial session aging; retain both original expiry assertions. Baseline failed 2 of 12 repeated runs; corrected setup passed 24 of 24 on isolated Docker Postgres and Mailpit.
 - [ ] Verify a contact created on staging survives the next deployment and observe independent GitHub deployment jobs after merge.
 - [ ] Complete PR and CI when the owner requests commit and push; no production deploy by the agent.
 
