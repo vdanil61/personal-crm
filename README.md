@@ -305,14 +305,84 @@ ssh -t crm 'sudo -u deploy /home/deploy/personal-crm-staging/rollback.sh staging
 
 ### Логи окружений
 
-Новые контейнеры пишут в системный журнал journald: логи переживают выкатку и откат, журнал удаляет старые строки в рамках своих системных ограничений. Посмотреть приложение стенда или прода:
+В общем `deploy/compose.yaml` для прода и стенда выбран системный журнал journald. Приложение, база и разовые контейнеры пишут туда стандартный вывод и ошибки. Метка приложения остаётся одинаковой после пересоздания контейнера, поэтому одной командой видна история нескольких выкаток и откатов — пока строки не удалены по ограничениям журнала. [Как работает драйвер Docker](https://docs.docker.com/engine/logging/drivers/journald/).
+
+Последние 100 строк приложения за час:
 
 ```sh
-ssh -t crm 'sudo journalctl CONTAINER_TAG=staging-app-1 --since "1 hour ago" --no-pager'
-ssh -t crm 'sudo journalctl CONTAINER_TAG=prod-app-1 --since "1 hour ago" --no-pager'
+ssh -t crm 'sudo journalctl CONTAINER_TAG=staging-app-1 --since "1 hour ago" -n 100 --no-pager'
+ssh -t crm 'sudo journalctl CONTAINER_TAG=prod-app-1 --since "1 hour ago" -n 100 --no-pager'
 ```
 
-Для базы — `staging-db-1` или `prod-db-1`. Объём журнала: `sudo journalctl --disk-usage`; ограничения задаются системой в `journald.conf`. Контейнеры прода перейдут на journald при следующей обычной выкатке. Старые контейнеры с прежним драйвером: `sudo docker logs ИМЯ_КОНТЕЙНЕРА`.
+Следить за новыми строками (остановить просмотр — `Ctrl+C`):
+
+```sh
+ssh -t crm 'sudo journalctl CONTAINER_TAG=staging-app-1 -n 50 -f'
+ssh -t crm 'sudo journalctl CONTAINER_TAG=prod-app-1 -n 50 -f'
+```
+
+Для базы замените метку на `staging-db-1` или `prod-db-1`. Для отдельной старой выкатки можно отобрать временной промежуток: добавить `--since "2026-11-16 10:00:00 UTC" --until "2026-11-16 10:30:00 UTC"`. Это время UTC; московское время на 3 часа больше. Команды требуют пароль sudo в вашем терминале; пароль агенту передавать не нужно.
+
+Проверить драйвер у реально запущенных контейнеров, не выводя переменные окружения и секреты:
+
+```sh
+ssh -t crm 'sudo docker inspect --format "{{.Name}} driver={{.HostConfig.LogConfig.Type}} tag={{index .HostConfig.LogConfig.Config \"tag\"}}" staging-app-1 staging-db-1 prod-app-1 prod-db-1'
+```
+
+Ожидается `driver=journald` и шаблон метки `tag={{.Name}}`. Настройка применяется при пересоздании контейнера, простой `restart` драйвер не меняет. Если прод ещё использует прежний драйвер, он перейдёт на journald при следующей обычной выкатке через **Deploy prod**, которую запускает владелец. Старые строки из другого драйвера в журнал сами не переносятся; до пересоздания их можно прочитать через `sudo docker logs ИМЯ_КОНТЕЙНЕРА`.
+
+Журнал хранится отдельно от контейнеров. Объём и действующие настройки сервера:
+
+```sh
+ssh -t crm 'sudo journalctl --disk-usage; systemd-analyze cat-config systemd/journald.conf'
+```
+
+Параметры `SystemMaxUse` и `SystemKeepFree` ограничивают хранение на диске, `RuntimeMaxUse` и `RuntimeKeepFree` — в памяти. Если они не заданы явно, действуют системные значения по умолчанию; старые архивные файлы удаляются автоматически. Поэтому журнал не является бессрочным архивом. При `Storage=auto` каталог `/var/log/journal` включает хранение на диске, в том числе между перезагрузками сервера. [Настройки и ограничения journald](https://www.freedesktop.org/software/systemd/man/latest/journald.conf.html). Общие настройки журнала и Docker на сервере с другими сайтами не меняем.
+
+#### Проверить сохранение строк после пересоздания на стенде
+
+Выполняйте после успешной выкатки стенда. На короткое время приложение стенда станет недоступно. Команды используют тот же образ и не запускают миграции. Прод и база стенда продолжают работать.
+
+Откройте оболочку на сервере с sudo:
+
+```sh
+ssh -t crm 'sudo bash'
+```
+
+В ней выполните блок целиком. Блокировка исключает одновременную выкатку, бэкап или восстановление стенда. Проверка сначала убеждается, что старый контейнер уже пишет в journald, затем пересоздаёт приложение и ищет в журнале строки по полному идентификатору удалённого контейнера:
+
+```bash
+(
+  set -euo pipefail
+  cd /home/deploy/personal-crm-staging
+  source ./lib.sh
+  configure_environment staging
+  take_lock
+  [ ! -f pending-image ] || { echo "Resolve the failed staging deployment first"; exit 1; }
+  export APP_IMAGE="$(cat current-image)"
+  old_id="$(docker inspect --format '{{.Id}}' staging-app-1)"
+  [ "$(docker inspect --format '{{.Config.Image}}' "$old_id")" = "$APP_IMAGE" ]
+  driver="$(docker inspect --format '{{.HostConfig.LogConfig.Type}}' "$old_id")"
+  [ "$driver" = journald ] || { echo "Staging needs a journald deployment first"; exit 1; }
+  old_lines="$(journalctl -q CONTAINER_ID_FULL="$old_id" -n 3 -o cat --no-pager)"
+  [ -n "$old_lines" ] || { echo "No old journal entries found; stopping before recreation"; exit 1; }
+  printf 'Old container: %s\n%s\n' "$old_id" "$old_lines"
+  "${compose[@]}" up --detach --no-deps --force-recreate --pull never --wait --wait-timeout 120 app
+  new_id="$(docker inspect --format '{{.Id}}' staging-app-1)"
+  [ "$old_id" != "$new_id" ]
+  [ "$(docker inspect --format '{{.HostConfig.LogConfig.Type}}' "$new_id")" = journald ]
+  smoke_check
+  retained_lines="$(journalctl -q CONTAINER_ID_FULL="$old_id" -o cat --no-pager)"
+  [[ "$retained_lines" = *"$old_lines"* ]]
+  printf '%s\n' "$old_lines"
+  printf 'PASS: old entries retained; new container: %s\n' "$new_id"
+  journalctl CONTAINER_TAG=staging-app-1 -n 10 --no-pager
+)
+```
+
+Успех — разные идентификаторы контейнеров, ответ `/health` с `{"status":"ok"}`, прежние строки в выводе и `PASS`. Завершите серверную оболочку командой `exit`. Если проверка упала, автоматического отката нет: сохраните вывод ошибки. Откат стенда описан выше; прод откатывает владелец через **Deploy prod**.
+
+#### Диагностика почты стенда
 
 Если при входе возникает ошибка почты, а журнал показывает только код вроде `EMESSAGE`, есть ручная диагностика Resend. Она использует тот же ключ и отправителя стенда, отправляет **одно письмо на `OWNER_EMAIL` через API Resend** и выводит ответ сервиса. Ключи и адреса скрываются. `.env` не читает: использует настройки уже запущенного контейнера. Запускает владелец, потому что нужен sudo. Из папки проекта на Mac:
 
